@@ -1,5 +1,3 @@
-Include.addScript('/B78XH/Enums/B78XH_LocalVariables.js');
-
 class B787_10_SYS extends B787_10_CommonMFD.MFDTemplateElement {
 	constructor() {
 		super(...arguments);
@@ -163,7 +161,7 @@ class B787_10_SYS_Page {
 				this.buttonRoot.addEventListener('mouseup', this.trigger.bind(this));
 				var textElement = this.buttonRoot.querySelector('text');
 				if (textElement != null) {
-					textElement.textContent = this.getName().replace('_', '/');
+					diffAndSetText(textElement, this.getName().replace('_', '/'));
 				}
 			}
 			this.pageRoot = _sys.querySelector('#' + this.getName() + '_Page');
@@ -184,7 +182,7 @@ class B787_10_SYS_Page {
 			}
 		}
 		if (this.pageRoot != null) {
-			this.pageRoot.style.display = this.active ? 'block' : 'none';
+			diffAndSetStyle(this.pageRoot, StyleProperty.display, this.active ? 'block' : 'none');
 		}
 	}
 
@@ -201,13 +199,13 @@ class B787_10_SYS_Page {
 	init() {
 		if (this.pageRoot != null) {
 			var inopText = document.createElementNS(Avionics.SVG.NS, 'text');
-			inopText.setAttribute('x', '50%');
-			inopText.setAttribute('y', '5%');
-			inopText.setAttribute('fill', 'var(--eicasWhite)');
-			inopText.setAttribute('fill', 'var(--eicasWhite)');
-			inopText.setAttribute('font-size', '45px');
-			inopText.setAttribute('text-anchor', 'middle');
-			inopText.textContent = 'INOP';
+			diffAndSetAttribute(inopText, 'x', '50%');
+			diffAndSetAttribute(inopText, 'y', '5%');
+			diffAndSetAttribute(inopText, 'fill', 'var(--eicasWhite)');
+			diffAndSetAttribute(inopText, 'fill', 'var(--eicasWhite)');
+			diffAndSetAttribute(inopText, 'font-size', '45px');
+			diffAndSetAttribute(inopText, 'text-anchor', 'middle');
+			diffAndSetText(inopText, 'INOP');
 			this.pageRoot.appendChild(inopText);
 		}
 	}
@@ -280,6 +278,11 @@ class B787_10_SYS_Page_STAT extends B787_10_SYS_Page {
 }
 
 class B787_10_SYS_Page_ELEC extends B787_10_SYS_Page {
+
+	init() {
+
+	}
+
 	updateChild(_deltaTime) {
 	}
 
@@ -289,88 +292,7 @@ class B787_10_SYS_Page_ELEC extends B787_10_SYS_Page {
 }
 
 class B787_10_SYS_Page_HYD extends B787_10_SYS_Page {
-	constructor() {
-		super(...arguments);
-		this.greenLines = {
-			'l-eng-green': null,
-			'r-eng-green': null,
-			'l-elec-green': null,
-			'r-elec-green': null,
-			'c1-elec-green': null,
-			'c1-c2-elec-green': null,
-			'c2-elec-green': null
-		};
-	}
-
-	init() {
-
-	}
-
 	updateChild(_deltaTime) {
-		this.greenLines['l-eng-green'] = SimVar.GetSimVarValue('A:HYDRAULIC SWITCH:1', 'Boolean');
-		this.greenLines['r-eng-green'] = SimVar.GetSimVarValue('A:HYDRAULIC SWITCH:2', 'Boolean');
-		this.greenLines['l-elec-green'] = SimVar.GetSimVarValue('L:B78XH_HYDRAULIC_ELEC_L_SWITCH_STATE', 'Number');
-		this.greenLines['r-elec-green'] = SimVar.GetSimVarValue('L:B78XH_HYDRAULIC_ELEC_R_SWITCH_STATE', 'Number');
-		this.greenLines['c1-elec-green'] = SimVar.GetSimVarValue('L:B78XH_HYDRAULIC_ELEC_C1_SWITCH_STATE', 'Number');
-		this.greenLines['c2-elec-green'] = SimVar.GetSimVarValue('L:B78XH_HYDRAULIC_ELEC_C2_SWITCH_STATE', 'Number');
-
-		if (this.pageRoot != null) {
-			Object.keys(this.greenLines).forEach((key) => {
-				this.shouldBeEnabled(key);
-			});
-		}
-	}
-
-	shouldBeEnabled(key) {
-		if (this.greenLines[key]) {
-			let element = this.pageRoot.querySelector('#' + key);
-			switch (key) {
-				case 'l-eng-green':
-					element.setAttribute('state', 'on');
-					break;
-				case 'r-eng-green':
-					element.setAttribute('state', 'on');
-					break;
-				case 'l-elec-green':
-					if (this.greenLines[key] > 1 || (this.greenLines[key] === 1 && this.greenLines['l-eng-green'] === 0)) {
-						element.setAttribute('state', 'on');
-					} else {
-						element.setAttribute('state', 'off');
-					}
-					break;
-				case 'r-elec-green':
-					if (this.greenLines[key] > 1 || (this.greenLines[key] === 1 && this.greenLines['r-eng-green'] === 0)) {
-						element.setAttribute('state', 'on');
-					} else {
-						element.setAttribute('state', 'off');
-					}
-					break;
-				case 'c1-elec-green':
-					if (this.greenLines[key] >= 1) {
-						element.setAttribute('state', 'on');
-					} else {
-						element.setAttribute('state', 'off');
-					}
-					break;
-				case 'c1-c2-elec-green':
-					element.setAttribute('state', 'off');
-					break;
-				case 'c2-elec-green':
-					if (this.greenLines[key] > 1 || (this.greenLines[key] === 1 && this.greenLines['c1-elec-green'] === 0)) {
-						element.setAttribute('state', 'on');
-					} else {
-						element.setAttribute('state', 'off');
-					}
-					break;
-				default:
-					element.setAttribute('state', 'off');
-					break;
-			}
-		} else {
-			let element = this.pageRoot.querySelector('#' + key);
-			element.setAttribute('state', 'off');
-		}
-
 	}
 
 	getName() {
@@ -453,9 +375,9 @@ class B787_10_SYS_Page_FUEL extends B787_10_SYS_Page {
 		}
 		if (this.unitTextSVG) {
 			if (!HeavyDivision.configuration.useImperial())
-				this.unitTextSVG.textContent = 'KGS X 1000';
+				diffAndSetText(this.unitTextSVG, 'KGS X 1000');
 			else
-				this.unitTextSVG.textContent = 'LBS X 1000';
+				diffAndSetText(this.unitTextSVG, 'LBS X 1000');
 		}
 	}
 
@@ -467,7 +389,6 @@ class B787_10_SYS_Page_FUEL extends B787_10_SYS_Page {
 class B787_10_SYS_Page_AIR extends B787_10_SYS_Page {
 
 	init() {
-
 	}
 
 	updateChild(_deltaTime) {
@@ -584,6 +505,7 @@ class B787_10_SYS_Page_DOOR extends B787_10_SYS_Page {
 }
 
 class B787_10_SYS_Page_GEAR extends B787_10_SYS_Page {
+
 	init() {
 		if (this.pageRoot != null) {
 			this.gearDisplay = new Boeing.GearDisplay(this.pageRoot.querySelector('#gear-doors'));
@@ -603,15 +525,15 @@ class B787_10_SYS_Page_GEAR extends B787_10_SYS_Page {
 
 class B787_10_SYS_Page_FCTL extends B787_10_SYS_Page {
 	init() {
-		if(this.pageRoot != null){
+		if (this.pageRoot != null) {
 			try {
-				this.stabDisplay = new Boeing.StabDisplay(this.pageRoot.querySelector("#Stab"), 17, 2);
+				this.stabDisplay = new Boeing.StabDisplay(this.pageRoot.querySelector('#Stab'), 17, 2);
 			} catch (e) {
 
 			}
 
 			try {
-				this.rudderDisplay = new Boeing.RudderDisplay(this.pageRoot.querySelector("#Rudder"));
+				this.rudderDisplay = new Boeing.RudderDisplay(this.pageRoot.querySelector('#Rudder'));
 			} catch (e) {
 
 			}
@@ -625,28 +547,28 @@ class B787_10_SYS_Page_FCTL extends B787_10_SYS_Page {
 			this.updateSpoilersPositions();
 			this.updateRudderPositions();
 			this.updateElevatorsPositions();
-			this.updateStabDisplay(_deltaTime)
-			this.updateRudderDisplay(_deltaTime)
+			this.updateStabDisplay(_deltaTime);
+			this.updateRudderDisplay(_deltaTime);
 		}
 	}
 
-	updateStabDisplay(_deltaTime){
-		if(this.stabDisplay){
+	updateStabDisplay(_deltaTime) {
+		if (this.stabDisplay) {
 			this.stabDisplay.update(_deltaTime);
 		} else {
 			try {
-				this.stabDisplay = new Boeing.StabDisplay(this.pageRoot.querySelector("#Stab"), 17, 2);
+				this.stabDisplay = new Boeing.StabDisplay(this.pageRoot.querySelector('#Stab'), 17, 2);
 			} catch (e) {
 			}
 		}
 	}
 
-	updateRudderDisplay(_deltaTime){
-		if(this.rudderDisplay){
+	updateRudderDisplay(_deltaTime) {
+		if (this.rudderDisplay) {
 			this.rudderDisplay.update(_deltaTime);
 		} else {
 			try {
-				this.rudderDisplay = new Boeing.RudderDisplay(this.pageRoot.querySelector("#Rudder"));
+				this.rudderDisplay = new Boeing.RudderDisplay(this.pageRoot.querySelector('#Rudder'));
 			} catch (e) {
 			}
 		}
@@ -765,10 +687,10 @@ class B787_10_SYS_Page_FCTL extends B787_10_SYS_Page {
 		let elevatorPosition = 74 * elevatorDeflection * -1;
 
 
-		let direction = (elevatorDeflection <= 0 ? 1 : 0)
+		let direction = (elevatorDeflection <= 0 ? 1 : 0);
 		let elevatorsConstant = 1.5;
 
-		if(direction){
+		if (direction) {
 			elevatorPosition = elevatorPosition * elevatorsConstant;
 		}
 
@@ -786,7 +708,162 @@ class B787_10_SYS_Page_FCTL extends B787_10_SYS_Page {
 }
 
 class B787_10_SYS_Page_EFIS_DSP extends B787_10_SYS_Page {
+
+	init() {
+		if (this.pageRoot != null) {
+
+			this.ctrButton = this.pageRoot.querySelector('#CTR_BUTTON');
+			this.ctrButtonPath = this.pageRoot.querySelector('#CTR_BUTTON_PATH');
+			this.ctrButtonPath.addEventListener('click', this.toggleNDCenter.bind(this));
+
+			this.plusButtonPath = this.pageRoot.querySelector('#PLUS_BUTTON_PATH');
+			this.plusButtonPath.addEventListener('click', this.increaseNDRange.bind(this));
+			this.minusButtonPath = this.pageRoot.querySelector('#MINUS_BUTTON_PATH');
+			this.minusButtonPath.addEventListener('click', this.decreaseNDRange.bind(this));
+
+
+			this.rstButtonPath = this.pageRoot.querySelector('#RST_BUTTON_PATH');
+			this.rstButtonPath.addEventListener('click', this.resetMinimumReference.bind(this));
+			this.minimumReferenceValue = this.pageRoot.querySelector('#MINIMUM_REFERENCE_VALUE')
+
+			this.radioSwitch = this.pageRoot.querySelector('#RADIO_SWITCH')
+			this.radioSwitch.addEventListener('click', this.setMinsToRadio.bind(this));
+			this.baroSwitch = this.pageRoot.querySelector('#BARO_SWITCH')
+			this.baroSwitch.addEventListener('click', this.setMinsToBaro.bind(this));
+			this.radioSwitchBackground = this.pageRoot.querySelector('#RADIO_SWITCH_BACKGROUND')
+			this.baroSwitchBackground = this.pageRoot.querySelector('#BARO_SWITCH_BACKGROUND')
+
+			this.stdButton = this.pageRoot.querySelector('#STD_BUTTON');
+			this.stdButtonPath = this.pageRoot.querySelector('#STD_BUTTON_PATH');
+			this.stdButtonPath.addEventListener('click', this.toggleBaroSTD.bind(this));
+			this.baroPressureValue = this.pageRoot.querySelector('#BARO_PRESSURE_VALUE');
+			this.pressureUnits = this.pageRoot.querySelector('#PRESSURE_UNITS');
+			this.inSwitch = this.pageRoot.querySelector('#IN_SWITCH');
+			this.inSwitch.addEventListener('click', this.setBaroToIN.bind(this));
+			this.inSwitchBackground = this.pageRoot.querySelector('#IN_SWITCH_BACKGROUND');
+			this.hpaSwitch = this.pageRoot.querySelector('#HPA_SWITCH');
+			this.hpaSwitch.addEventListener('click', this.setBaroToHPA.bind(this));
+			this.hpaSwitchBackground = this.pageRoot.querySelector('#HPA_SWITCH_BACKGROUND');
+
+			this.wxrButton = this.pageRoot.querySelector('#WXR_BUTTON');
+			this.wxrButtonPath = this.pageRoot.querySelector('#WXR_BUTTON_PATH');
+			this.wxrButtonPath.addEventListener('click', this.toggleWXR.bind(this));
+			this.tfcButton = this.pageRoot.querySelector('#TFC_BUTTON');
+			this.tfcButtonPath = this.pageRoot.querySelector('#TFC_BUTTON_PATH');
+			this.tfcButtonPath.addEventListener('click', this.toggleTFC.bind(this))
+			this.terrButton = this.pageRoot.querySelector('#TERR_BUTTON');
+			this.terrButtonPath = this.pageRoot.querySelector('#TERR_BUTTON_PATH');
+			this.terrButtonPath.addEventListener('click', this.toggleTERR.bind(this))
+		}
+	}
+
+	toggleNDCenter(){
+		HeavyEventDispatcher.trigger(HeavyEventDispatcher.event.AUTOPILOT_CTR, HeavyEventDispatcher.target.MFD_1)
+	}
+
+	increaseNDRange(){
+		HeavyEventDispatcher.trigger(HeavyEventDispatcher.event.Range_INC, HeavyEventDispatcher.target.MFD_1)
+	}
+
+	decreaseNDRange(){
+		HeavyEventDispatcher.trigger(HeavyEventDispatcher.event.Range_DEC, HeavyEventDispatcher.target.MFD_1)
+	}
+
+	toggleWXR(){
+		HeavyEventDispatcher.trigger(HeavyEventDispatcher.event.DSP_WXR, HeavyEventDispatcher.target.MFD_1)
+	}
+
+	toggleTFC(){
+		HeavyEventDispatcher.trigger(HeavyEventDispatcher.event.DSP_TFC, HeavyEventDispatcher.target.MFD_1)
+	}
+
+	toggleTERR(){
+		HeavyEventDispatcher.trigger(HeavyEventDispatcher.event.DSP_TERR, HeavyEventDispatcher.target.MFD_1)
+	}
+
+	resetMinimumReference(){
+		HeavyEventDispatcher.trigger(HeavyEventDispatcher.event.Mins_RST, HeavyEventDispatcher.target.PFD);
+	}
+
+	getMinsValue(){
+		return SimVar.GetSimVarValue('L:B78XH_MINIMUM_REFERENCE', 'Number');
+	}
+
+	areMinsInRadioPosition(){
+		return !(!!SimVar.GetSimVarValue('L:XMLVAR_Mins_Selector_Baro', 'Number'));
+	}
+
+	setMinsToRadio(){
+		if(!this.areMinsInRadioPositionValue){
+			HeavyEventDispatcher.triggerValue(HeavyEventDispatcher.event.Mins_Selector_Set, HeavyEventDispatcher.target.GLOBAL, 0, 'Number')
+		}
+	}
+
+	setMinsToBaro(){
+		if(this.areMinsInRadioPositionValue){
+			HeavyEventDispatcher.triggerValue(HeavyEventDispatcher.event.Mins_Selector_Set, HeavyEventDispatcher.target.GLOBAL, 1, 'Number')
+		}
+	}
+
+	toggleBaroSTD() {
+		if (this.isBaroSTD()) {
+			SimVar.SetSimVarValue('L:XMLVAR_Baro1_ForcedToSTD', 'Number', 0);
+		} else {
+			SimVar.SetSimVarValue('L:XMLVAR_Baro1_ForcedToSTD', 'Number', 1);
+			SimVar.SetSimVarValue('K:BAROMETRIC_STD_PRESSURE', 'Number', 1);
+		}
+	}
+
+	setBaroToIN() {
+		SimVar.SetSimVarValue('L:XMLVAR_Baro_Selector_HPA_1', 'Bool', false);
+	}
+
+	setBaroToHPA() {
+		SimVar.SetSimVarValue('L:XMLVAR_Baro_Selector_HPA_1', 'Bool', true);
+	}
+
+	isBaroSTD() {
+		return !!(SimVar.GetSimVarValue('L:XMLVAR_Baro1_ForcedToSTD', 'Number'));
+	}
+
+	isBaroUnitInchesOfMercury() {
+		return (Simplane.getPressureSelectedUnits() === 'inches of mercury');
+	}
+
 	updateChild(_deltaTime) {
+		const isNDCentered = SimVar.GetSimVarValue('L:B78XH_IS_ND_CENTERED:1', 'Bool');
+		this.ctrButton.setAttribute('fill', (isNDCentered ? 'green' : 'none'));
+
+		const wxRadarOn = SimVar.GetSimVarValue('L:BTN_WX_ACTIVE:1', 'bool');
+		const terrainOn = SimVar.GetSimVarValue('L:BTN_TERRONND_ACTIVE:1', 'number');
+		const trafficOn = SimVar.GetSimVarValue('L:BTN_TFCONND_ACTIVE:1', 'number');
+
+		this.wxrButton.setAttribute('fill', (wxRadarOn ? 'green' : 'none'));
+		this.tfcButton.setAttribute('fill', (trafficOn ? 'green' : 'none'));
+		this.terrButton.setAttribute('fill', (terrainOn ? 'green' : 'none'));
+
+		this.areMinsInRadioPositionValue = this.areMinsInRadioPosition()
+
+		diffAndSetText(this.minimumReferenceValue, this.getMinsValue());
+
+		diffAndSetAttribute(this.radioSwitchBackground, 'fill', (this.areMinsInRadioPositionValue ? '#155700' : 'none'));
+		diffAndSetAttribute(this.baroSwitchBackground, 'fill', (this.areMinsInRadioPositionValue ? 'none' : '#155700'));
+
+		const baroMode = this.isBaroSTD();
+		const baroInInchesOfMercury = this.isBaroUnitInchesOfMercury();
+		let baroValue;
+		if (baroInInchesOfMercury) {
+			baroValue = fastToFixed(Simplane.getPressureValue(), 2);
+		} else {
+			baroValue = fastToFixed(Simplane.getPressureValue('hectopascal'), 0);
+		}
+
+		diffAndSetText(this.baroPressureValue, (baroMode ? 'STD' : baroValue));
+		this.stdButton.setAttribute('fill', (baroMode ? 'green' : 'none'));
+		diffAndSetText(this.pressureUnits, (baroInInchesOfMercury ? 'IN' : 'HPA'));
+
+		diffAndSetAttribute(this.inSwitchBackground, 'fill', (baroInInchesOfMercury ? '#155700' : 'none'));
+		diffAndSetAttribute(this.hpaSwitchBackground, 'fill', (baroInInchesOfMercury ? 'none' : '#155700'));
 	}
 
 	getName() {

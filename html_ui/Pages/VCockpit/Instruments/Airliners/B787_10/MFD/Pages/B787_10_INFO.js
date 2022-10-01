@@ -22,22 +22,25 @@ class B787_10_INFO extends B787_10_CommonMFD.MFDTemplateElement {
 		this.dtkBox = document.getElementById('dtk');
 		this.bankAngle = document.getElementById('bank-angle');
 		this.apHeadingLockBox = document.getElementById('ap-heading-lock');
-		this.apPanelHeadingHold  = document.getElementById('ap-panel-heading-hold');
-		this.apHeadingHoldActiveBox  = document.getElementById('ap-heading-hold-active');
-		this.turnToBox  = document.getElementById('turn-to');
+		this.apPanelHeadingHold = document.getElementById('ap-panel-heading-hold');
+		this.apHeadingHoldActiveBox = document.getElementById('ap-heading-hold-active');
+		this.turnToBox = document.getElementById('turn-to');
 
 		this.lnavActiveBox = document.getElementById('lnav-active');
 		this.lnavArmedBox = document.getElementById('lnav-armed');
 		this.nav1HoldBox = document.getElementById('nav1-hold');
+
+		this.fpSequencingBox = document.getElementById('fp-sequencing');
+		this.fpInDiscontinuityBox = document.getElementById('fp-in-discontinuity');
 	}
 
 	updateChild(_deltaTime) {
 		let state = this.getAircraftState();
 
 		this.magvarBox.innerText = state.magVar;
-		this.bankAngle.innerText = state.bankAngle
-		this.turnToBox.innerText = (state.bankAngle < 0 ? 'right' : 'left')
-		this.turnToBox.innerText = (state.bankAngle > -0.5 && state.bankAngle < 0.5 ? 'none' : this.turnToBox.innerText)
+		this.bankAngle.innerText = state.bankAngle;
+		this.turnToBox.innerText = (state.bankAngle < 0 ? 'right' : 'left');
+		this.turnToBox.innerText = (state.bankAngle > -0.5 && state.bankAngle < 0.5 ? 'none' : this.turnToBox.innerText);
 		this.onGroundBox.innerText = state.onGround;
 
 		this.trueAirspeedBox.innerText = state.trueAirspeed;
@@ -46,41 +49,48 @@ class B787_10_INFO extends B787_10_CommonMFD.MFDTemplateElement {
 		this.windDirectionBox.innerText = state.windDirection;
 		this.windSpeedBox.innerText = state.windSpeed;
 
-		this.lnavActiveBox.innerText = SimVar.GetSimVarValue("L:AP_LNAV_ACTIVE", "number");
-		this.lnavArmedBox.innerText = SimVar.GetSimVarValue("L:AP_LNAV_ARMED", "number");
-		this.nav1HoldBox.innerText = SimVar.GetSimVarValue("K:AP_NAV1_HOLD_ON", "number");
+		this.lnavActiveBox.innerText = SimVar.GetSimVarValue('L:AP_LNAV_ACTIVE', 'number');
+		this.lnavArmedBox.innerText = SimVar.GetSimVarValue('L:AP_LNAV_ARMED', 'number');
+		this.nav1HoldBox.innerText = SimVar.GetSimVarValue('K:AP_NAV1_HOLD_ON', 'number');
 
 
-		this.headingSlotBox.innerText = SimVar.GetSimVarValue("AUTOPILOT HEADING SLOT INDEX", "number");
-		this.apHeadingLockBox.innerText = SimVar.GetSimVarValue("AUTOPILOT HEADING LOCK", "Boolean")
-		this.apHeadingHoldActiveBox.innerText = SimVar.GetSimVarValue("L:AP_HEADING_HOLD_ACTIVE", "Boolean")
-		this.apPanelHeadingHold.innerText = SimVar.GetSimVarValue("K:AP_PANEL_HEADING_HOLD", "Boolean")
+		this.headingSlotBox.innerText = SimVar.GetSimVarValue('AUTOPILOT HEADING SLOT INDEX', 'number');
+		this.apHeadingLockBox.innerText = SimVar.GetSimVarValue('AUTOPILOT HEADING LOCK', 'Boolean');
+		this.apHeadingHoldActiveBox.innerText = SimVar.GetSimVarValue('L:AP_HEADING_HOLD_ACTIVE', 'Boolean');
+		this.apPanelHeadingHold.innerText = SimVar.GetSimVarValue('K:AP_PANEL_HEADING_HOLD', 'Boolean');
 
 		this.trueHeadingBox.innerText = state.trueHeading;
 		this.trueTrackBox.innerText = state.trueTrack;
 		this.magneticHeadingBox.innerText = state.magneticHeading;
 
-		this.xtkBox.innerText = SimVar.GetSimVarValue("L:WT_CJ4_XTK", "number");
-		this.dtkBox.innerText = SimVar.GetSimVarValue("L:WT_CJ4_DTK", "number");
+		this.xtkBox.innerText = SimVar.GetSimVarValue('L:WT_CJ4_XTK', 'number');
+		this.dtkBox.innerText = SimVar.GetSimVarValue('L:WT_CJ4_DTK', 'number');
+
+		this.fpSequencingBox.innerText = state.sequencing;
+		this.fpInDiscontinuityBox.innerText = state.inDiscontinuity;
 	}
 
-	getAircraftState(){
+	getAircraftState() {
 		let state = {};
 		//state.position = new LatLongAlt(SimVar.GetSimVarValue("GPS POSITION LAT", "degree latitude"), SimVar.GetSimVarValue("GPS POSITION LON", "degree longitude"));
-		state.magVar = SimVar.GetSimVarValue("MAGVAR", "degrees");
+		state.magVar = SimVar.GetSimVarValue('MAGVAR', 'degrees');
 
-		state.groundSpeed = SimVar.GetSimVarValue("GPS GROUND SPEED", "knots");
+		state.groundSpeed = SimVar.GetSimVarValue('GPS GROUND SPEED', 'knots');
 		state.trueAirspeed = SimVar.GetSimVarValue('AIRSPEED TRUE', 'knots');
 		state.onGround = SimVar.GetSimVarValue('SIM ON GROUND', 'bool') !== 0;
 
-		state.windDirection = SimVar.GetSimVarValue("AMBIENT WIND DIRECTION", "degrees");
-		state.windSpeed = SimVar.GetSimVarValue("AMBIENT WIND VELOCITY", "knots");
+		state.windDirection = SimVar.GetSimVarValue('AMBIENT WIND DIRECTION', 'degrees');
+		state.windSpeed = SimVar.GetSimVarValue('AMBIENT WIND VELOCITY', 'knots');
 
 		state.trueHeading = SimVar.GetSimVarValue('PLANE HEADING DEGREES TRUE', 'Radians') * Avionics.Utils.RAD2DEG;
 		state.magneticHeading = SimVar.GetSimVarValue('PLANE HEADING DEGREES MAGNETIC', 'Radians') * Avionics.Utils.RAD2DEG;
 		state.trueTrack = SimVar.GetSimVarValue('GPS GROUND TRUE TRACK', 'Radians') * Avionics.Utils.RAD2DEG;
 
 		state.bankAngle = SimVar.GetSimVarValue('PLANE BANK DEGREES', 'Radians') * Avionics.Utils.RAD2DEG;
+
+		state.inDiscontinuity = (SimVar.GetSimVarValue('L:WT_CJ4_IN_DISCONTINUITY', 'number') ? 'TRUE' : 'FALSE');
+		state.sequencing = (SimVar.GetSimVarValue('L:WT_CJ4_SEQUENCING', 'number') ? 'AUTO' : 'INHIBIT');
+
 		return state;
 	}
 

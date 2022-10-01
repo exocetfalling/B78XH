@@ -23,8 +23,6 @@ class B787_10_EICAS extends B787_10_CommonMFD.MFDTemplateElement {
 
 	initChild() {
 		this.unitTextSVG = this.querySelector('#UNITS_Value');
-		this.tmaValue = this.querySelector('#TMA_Value');
-		this.thrustAssumedTemperatureValue = this.querySelector('#ASSUMEDTEMP_Value');
 		this.allValueComponents.push(new Airliners.DynamicValueComponent(this.querySelector('#TAT_Value'), Simplane.getTotalAirTemperature, 0, Airliners.DynamicValueComponent.formatValueToPosNegTemperature));
 		this.allValueComponents.push(new Airliners.DynamicValueComponent(this.querySelector('#THROTTLE1_Value'), Simplane.getEngineThrottleCommandedN1.bind(this, 0), 1, Airliners.DynamicValueComponent.formatValueToThrottleDisplay));
 		this.allValueComponents.push(new Airliners.DynamicValueComponent(this.querySelector('#THROTTLE2_Value'), Simplane.getEngineThrottleCommandedN1.bind(this, 1), 1, Airliners.DynamicValueComponent.formatValueToThrottleDisplay));
@@ -69,7 +67,7 @@ class B787_10_EICAS extends B787_10_CommonMFD.MFDTemplateElement {
 		this.secondaryEngine.push(this.querySelector('#SecondaryEngineTop'));
 		this.secondaryEngine.push(this.querySelector('#SecondaryEngineBottom'));
 		for (let i = 0; i < this.secondaryEngine.length; i++) {
-			this.secondaryEngine[i].setAttribute('visibility', (this.secondaryEngineVisible) ? 'visible' : 'hidden');
+			diffAndSetAttribute(this.secondaryEngine[i], 'visibility', (this.secondaryEngineVisible) ? 'visible' : 'hidden');
 		}
 		this.infoPanel = new Boeing.InfoPanel(this, 'InfoPanel');
 		this.infoPanel.init();
@@ -77,9 +75,6 @@ class B787_10_EICAS extends B787_10_CommonMFD.MFDTemplateElement {
 		this.infoPanelsManager.init(this.infoPanel);
 		this.gallonToMegagrams = SimVar.GetSimVarValue('FUEL WEIGHT PER GALLON', 'kilogram') * 0.001;
 		this.gallonToMegapounds = SimVar.GetSimVarValue('FUEL WEIGHT PER GALLON', 'lbs') * 0.001;
-		this.thrustAssumedTemperature = -1000;
-		this.thrustTakeOffMode = 1;
-		this.thrustClimbMode = 1;
 	}
 
 	updateChild(_deltaTime) {
@@ -119,48 +114,18 @@ class B787_10_EICAS extends B787_10_CommonMFD.MFDTemplateElement {
 		}
 		if (this.unitTextSVG) {
 			if (!HeavyDivision.configuration.useImperial())
-				this.unitTextSVG.textContent = 'KGS X';
+				diffAndSetText(this.unitTextSVG, 'KGS X');
 			else
-				this.unitTextSVG.textContent = 'LBS X';
+				diffAndSetText(this.unitTextSVG, 'LBS X');
 		}
-
-		/**
-		 * TODO: Make component for texts
-		 */
-
-		this.tmaValue.textContent = this.getThrustMode();
-		this.thrustAssumedTemperatureValue.textContent = B787_10_EICAS.formatAssumedTemperature(this.getThrustAssumedTemperature());
-	}
-
-	static formatAssumedTemperature(_value, _dp = 0){
-		if (_value === -1000){
-			return '';
-		}
-		return Airliners.DynamicValueComponent.formatValueToPosNegTemperature(_value, _dp = 0)
-	}
-
-	getThrustAssumedTemperature(){
-		if(this.thrustAssumedTemperature === -1000){
-			return -1000;
-		}
-
-		if(isFinite(this.thrustAssumedTemperature)){
-			return this.thrustAssumedTemperature;
-		}
-		return -1000;
 	}
 
 	onEvent(_event) {
 		switch (_event) {
-			case 'TAKEOFF_MODES_UPDATED':
-				this.thrustTakeOffMode = SimVar.GetSimVarValue('L:B78XH_THRUST_TAKEOFF_MODE', 'Number')
-				this.thrustClimbMode = SimVar.GetSimVarValue('L:B78XH_THRUST_CLIMB_MODE', 'Number')
-				this.thrustAssumedTemperature = SimVar.GetSimVarValue('L:B78XH_THRUST_ASSUMED_TEMPERATURE', 'Number')
-				break;
 			case 'ENG':
 				this.secondaryEngineVisible = !this.secondaryEngineVisible;
 				for (let i = 0; i < this.secondaryEngine.length; i++) {
-					this.secondaryEngine[i].setAttribute('visibility', (this.secondaryEngineVisible) ? 'visible' : 'hidden');
+					diffAndSetAttribute(this.secondaryEngine[i], 'visibility', (this.secondaryEngineVisible) ? 'visible' : 'hidden');
 				}
 				break;
 		}
@@ -176,41 +141,6 @@ class B787_10_EICAS extends B787_10_CommonMFD.MFDTemplateElement {
 
 	getN3Value(_engine) {
 		return 0;
-	}
-
-	getThrustMode(){
-		const flightPhase = Simplane.getCurrentFlightPhase();
-		switch(flightPhase){
-			case FlightPhase.FLIGHT_PHASE_TAKEOFF:
-				switch (this.thrustTakeOffMode){
-					case 0:
-						return (this.getThrustAssumedTemperature() === -1000 ? 'TO' : 'D-TO');
-					case 1:
-						return (this.getThrustAssumedTemperature() === -1000 ? 'TO 1' : 'D-TO 1');
-					case 2:
-						return (this.getThrustAssumedTemperature() === -1000 ? 'TO 2' : 'D-TO 2');
-					default:
-						return '';
-				}
-			case FlightPhase.FLIGHT_PHASE_CLIMB:
-				switch (this.thrustClimbMode){
-					case 0:
-						return 'CLB';
-					case 1:
-						return 'CLB 1';
-					case 2:
-						return 'CLB 2';
-					default:
-						return '';
-				}
-			case FlightPhase.FLIGHT_PHASE_CRUISE:
-				return "CRZ"
-
-			case FlightPhase.FLIGHT_PHASE_DESCENT:
-				return "CRZ"
-			default:
-				return '';
-		}
 	}
 
 	getFFValue(_engine) {
@@ -262,6 +192,7 @@ class B787_10_EICAS_CircleGauge extends B787_10_EICAS_Gauge {
 		this.engineIndex = 0;
 		this.currentValue = 0;
 		this.valueText = null;
+		this._fraction = 1;
 		this.fill = null;
 		this.fillPathD = '';
 		this.fillCenter = new Vec2();
@@ -302,13 +233,13 @@ class B787_10_EICAS_CircleGauge extends B787_10_EICAS_Gauge {
 				this.defaultMarkerTransform = this.whiteMarker.getAttribute('transform');
 			}
 			if (this.redMarker != null) {
-				this.redMarker.setAttribute('transform', this.defaultMarkerTransform + ' rotate(' + B787_10_EICAS_CircleGauge.MAX_ANGLE + ')');
+				diffAndSetAttribute(this.redMarker, 'transform', this.defaultMarkerTransform + ' rotate(' + B787_10_EICAS_CircleGauge.MAX_ANGLE + ')');
 			}
 			if (this.orangeMarker != null) {
-				this.orangeMarker.style.display = 'none';
+				diffAndSetStyle(this.orangeMarker, StyleProperty.display, 'none');
 			}
 			if (this.greenMarker != null) {
-				this.greenMarker.style.display = 'none';
+				diffAndSetStyle(this.greenMarker, StyleProperty.display, 'none');
 			}
 		}
 		this.refresh(0, true);
@@ -328,20 +259,20 @@ class B787_10_EICAS_CircleGauge extends B787_10_EICAS_Gauge {
 			}
 			if (this.valueText != null) {
 				if (hide) {
-					this.valueText.textContent = '';
+					diffAndSetText(this.valueText, '');
 				} else {
-					this.valueText.textContent = this.currentValue.toFixed(1);
+					diffAndSetText(this.valueText, fastToFixed(this.currentValue, this._fraction));
 				}
 			}
 			var angle = Math.max((this.valueToPercentage(this.currentValue) * 0.01) * B787_10_EICAS_CircleGauge.MAX_ANGLE, 0.001);
 			if (this.whiteMarker != null) {
-				this.whiteMarker.setAttribute('transform', this.defaultMarkerTransform + ' rotate(' + angle + ')');
+				diffAndSetAttribute(this.whiteMarker, 'transform', this.defaultMarkerTransform + ' rotate(' + angle + ')');
 			}
 			if (this.fill != null) {
 				var rad = angle * B787_10_EICAS_CircleGauge.DEG_TO_RAD;
 				var x = (Math.cos(rad) * this.fillRadius) + this.fillCenter.x;
 				var y = (Math.sin(rad) * this.fillRadius) + this.fillCenter.y;
-				this.fill.setAttribute('d', 'M' + x + ' ' + y + ' ' + this.fillPathD.replace('0 0 0', (angle <= 180) ? '0 0 0' : '0 1 0'));
+				diffAndSetAttribute(this.fill, 'd', 'M' + x + ' ' + y + ' ' + this.fillPathD.replace('0 0 0', (angle <= 180) ? '0 0 0' : '0 1 0'));
 			}
 		}
 	}
@@ -371,6 +302,11 @@ class B787_10_EICAS_Gauge_N1 extends B787_10_EICAS_CircleGauge {
 }
 
 class B787_10_EICAS_Gauge_EGT extends B787_10_EICAS_CircleGauge {
+	constructor(_engineIndex, _root, _template, _hideIfN1IsZero) {
+		super(_engineIndex, _root, _template, _hideIfN1IsZero);
+		this._fraction = 0;
+	}
+
 	getCurrentValue() {
 		return SimVar.GetSimVarValue('ENG EXHAUST GAS TEMPERATURE:' + this.engineIndex, 'celsius');
 	}
@@ -428,26 +364,26 @@ class B787_10_EICAS_LineGauge extends B787_10_EICAS_Gauge {
 							mainX, warningY1,
 							(leftGauge ? (mainX + B787_10_EICAS_LineGauge.MARKER_WARNING_LENGTH) : (mainX - B787_10_EICAS_LineGauge.MARKER_WARNING_LENGTH)), warningY1
 						].join(' ');
-						this.warningBar.setAttribute('points', pointsStr);
-						this.warningBar.setAttribute('class', 'warningMarker');
+						diffAndSetAttribute(this.warningBar, 'points', pointsStr);
+						diffAndSetAttribute(this.warningBar, 'class', 'warningMarker');
 						this.root.appendChild(this.warningBar);
 					}
 					if (this.needDangerMinDisplay()) {
 						this.dangerMinBar = document.createElementNS(Avionics.SVG.NS, 'line');
-						this.dangerMinBar.setAttribute('x1', (leftGauge ? (mainX + B787_10_EICAS_LineGauge.MARKER_DANGER_START_OFFSET) : (mainX - B787_10_EICAS_LineGauge.MARKER_DANGER_START_OFFSET)).toString());
-						this.dangerMinBar.setAttribute('x2', (leftGauge ? (mainX + B787_10_EICAS_LineGauge.MARKER_DANGER_END_OFFSET) : (mainX - B787_10_EICAS_LineGauge.MARKER_DANGER_END_OFFSET)).toString());
-						this.dangerMinBar.setAttribute('y1', mainY2.toString());
-						this.dangerMinBar.setAttribute('y2', mainY2.toString());
-						this.dangerMinBar.setAttribute('class', 'dangerMarker');
+						diffAndSetAttribute(this.dangerMinBar, 'x1', (leftGauge ? (mainX + B787_10_EICAS_LineGauge.MARKER_DANGER_START_OFFSET) : (mainX - B787_10_EICAS_LineGauge.MARKER_DANGER_START_OFFSET)) + '');
+						diffAndSetAttribute(this.dangerMinBar, 'x2', (leftGauge ? (mainX + B787_10_EICAS_LineGauge.MARKER_DANGER_END_OFFSET) : (mainX - B787_10_EICAS_LineGauge.MARKER_DANGER_END_OFFSET)) + '');
+						diffAndSetAttribute(this.dangerMinBar, 'y1', mainY2 + '');
+						diffAndSetAttribute(this.dangerMinBar, 'y2', mainY2 + '');
+						diffAndSetAttribute(this.dangerMinBar, 'class', 'dangerMarker');
 						this.root.appendChild(this.dangerMinBar);
 					}
 					if (this.needDangerMaxDisplay()) {
 						this.dangerMaxBar = document.createElementNS(Avionics.SVG.NS, 'line');
-						this.dangerMaxBar.setAttribute('x1', (leftGauge ? (mainX + B787_10_EICAS_LineGauge.MARKER_DANGER_START_OFFSET) : (mainX - B787_10_EICAS_LineGauge.MARKER_DANGER_START_OFFSET)).toString());
-						this.dangerMaxBar.setAttribute('x2', (leftGauge ? (mainX + B787_10_EICAS_LineGauge.MARKER_DANGER_END_OFFSET) : (mainX - B787_10_EICAS_LineGauge.MARKER_DANGER_END_OFFSET)).toString());
-						this.dangerMaxBar.setAttribute('y1', mainY1.toString());
-						this.dangerMaxBar.setAttribute('y2', mainY1.toString());
-						this.dangerMaxBar.setAttribute('class', 'dangerMarker');
+						diffAndSetAttribute(this.dangerMaxBar, 'x1', (leftGauge ? (mainX + B787_10_EICAS_LineGauge.MARKER_DANGER_START_OFFSET) : (mainX - B787_10_EICAS_LineGauge.MARKER_DANGER_START_OFFSET)) + '');
+						diffAndSetAttribute(this.dangerMaxBar, 'x2', (leftGauge ? (mainX + B787_10_EICAS_LineGauge.MARKER_DANGER_END_OFFSET) : (mainX - B787_10_EICAS_LineGauge.MARKER_DANGER_END_OFFSET)) + '');
+						diffAndSetAttribute(this.dangerMaxBar, 'y1', mainY1 + '');
+						diffAndSetAttribute(this.dangerMaxBar, 'y2', mainY1 + '');
+						diffAndSetAttribute(this.dangerMaxBar, 'class', 'dangerMarker');
 						this.root.appendChild(this.dangerMaxBar);
 					}
 				}
@@ -458,8 +394,8 @@ class B787_10_EICAS_LineGauge extends B787_10_EICAS_Gauge {
 					'l', 0, B787_10_EICAS_LineGauge.CURSOR_HEIGHT,
 					'Z'
 				].join(' ');
-				this.cursor.setAttribute('d', dStr);
-				this.cursor.setAttribute('class', 'cursor');
+				diffAndSetAttribute(this.cursor, 'd', dStr);
+				diffAndSetAttribute(this.cursor, 'class', 'cursor');
 				this.root.appendChild(this.cursor);
 			}
 			this.initChild();
@@ -478,23 +414,29 @@ class B787_10_EICAS_LineGauge extends B787_10_EICAS_Gauge {
 			if (this.hideIfN1IsZero && SimVar.GetSimVarValue('ENG N1 RPM:' + this.engineIndex, 'percent') < 0.1) {
 				this.currentValue = -1;
 				hide = true;
+				this.isStartUp = true;
+			}
+			if (SimVar.GetSimVarValue('ENG N1 RPM:' + this.engineIndex, 'percent') < 20 && this.isStartUp) {
+				this.isStartUp = true;
+			} else {
+				this.isStartUp = false;
 			}
 			var isInDangerState = (this.needDangerMinDisplay() && (this.currentValue <= 0)) || (this.needDangerMaxDisplay() && (this.currentValue >= this.getMax()));
-			var isInWarningState = !isInDangerState && (this.getWarningValue() > 0) && (this.currentValue <= this.getWarningValue());
+			var isInWarningState = !isInDangerState && (this.getWarningValue() > 0) && (this.currentValue <= this.getWarningValue()) && !this.isStartUp;
 			var stateStyle = isInDangerState ? ' danger' : (isInWarningState ? ' warning' : '');
 			if (this.valueText != null) {
 				if (hide) {
-					this.valueText.textContent = '';
+					diffAndSetText(this.valueText, '');
 				} else {
-					this.valueText.textContent = this.currentValue.toFixed(this.getValuePrecision());
+					diffAndSetText(this.valueText, fastToFixed(this.currentValue, this.getValuePrecision()));
 				}
-				this.valueText.setAttribute('class', stateStyle);
+				diffAndSetAttribute(this.valueText, 'class', stateStyle);
 			}
 			if ((this.cursor != null) && (this.barHeight > 0)) {
 				var valueAsPercent = Utils.Clamp(this.valueToPercent(this.currentValue), 0, 1);
 				var cursorY = (1 - valueAsPercent) * this.barHeight;
-				this.cursor.setAttribute('transform', 'translate(0, ' + cursorY + ')');
-				this.cursor.setAttribute('class', 'cursor' + stateStyle);
+				diffAndSetAttribute(this.cursor, 'transform', 'translate(0, ' + cursorY + ')');
+				diffAndSetAttribute(this.cursor, 'class', 'cursor' + stateStyle);
 			}
 			this.refreshChild();
 		}
@@ -586,10 +528,10 @@ class B787_10_EICAS_Gauge_VIB extends B787_10_EICAS_LineGauge {
 			var x2 = ((this.engineIndex == 1) ? (x1 + B787_10_EICAS_Gauge_VIB.MARKER_TOO_HIGH_LENGTH) : (x1 - B787_10_EICAS_Gauge_VIB.MARKER_TOO_HIGH_LENGTH));
 			var y = (this.mainBar.y2.baseVal.value - (this.valueToPercent(B787_10_EICAS_Gauge_VIB.TOO_HIGH_VALUE) * (this.mainBar.y2.baseVal.value - this.mainBar.y1.baseVal.value)));
 			this.tooHighBar = document.createElementNS(Avionics.SVG.NS, 'line');
-			this.tooHighBar.setAttribute('x1', x1.toString());
-			this.tooHighBar.setAttribute('x2', x2.toString());
-			this.tooHighBar.setAttribute('y1', y.toString());
-			this.tooHighBar.setAttribute('y2', y.toString());
+			diffAndSetAttribute(this.tooHighBar, 'x1', x1 + '');
+			diffAndSetAttribute(this.tooHighBar, 'x2', x2 + '');
+			diffAndSetAttribute(this.tooHighBar, 'y1', y + '');
+			diffAndSetAttribute(this.tooHighBar, 'y2', y + '');
 			this.root.appendChild(this.tooHighBar);
 		}
 	}
@@ -597,10 +539,10 @@ class B787_10_EICAS_Gauge_VIB extends B787_10_EICAS_LineGauge {
 	refreshChild() {
 		var tooHigh = (this.currentValue >= B787_10_EICAS_Gauge_VIB.TOO_HIGH_VALUE);
 		if (this.box != null) {
-			this.box.setAttribute('class', tooHigh ? 'invert' : '');
+			diffAndSetAttribute(this.box, 'class', tooHigh ? 'invert' : '');
 		}
 		if (this.valueText != null) {
-			this.valueText.setAttribute('class', tooHigh ? 'invert' : '');
+			diffAndSetAttribute(this.valueText, 'class', tooHigh ? 'invert' : '');
 		}
 	}
 

@@ -4,7 +4,7 @@ class HoldsDirector {
 	/**
 	 * Creates an instance of a HoldsDirector.
 	 * @param {FlightPlanManager} fpm An instance of the flight plan manager.
-	 * @param {B78XHNavModeSelector} navModeSelector The nav mode selector to use with this instance.
+	 * @param {CJ4NavModeSelector} navModeSelector The nav mode selector to use with this instance.
 	 */
 	constructor(fpm, navModeSelector) {
 
@@ -156,7 +156,9 @@ class HoldsDirector {
 		SimVar.SetSimVarValue('L:WT_CJ4_WPT_DISTANCE', 'number', distanceRemaining);
 
 		if (this.isHoldActive()) {
-			return !this.isHoldActive();
+			MessageService.getInstance().post(FMS_MESSAGE_ID.HOLD, () => {
+				return !this.isHoldActive();
+			});
 		}
 	}
 
@@ -169,12 +171,10 @@ class HoldsDirector {
 
 		if (this.isAbeam(dtk, planeState.position, this.fixCoords)) {
 			this.recalculateHold(planeState);
-			this.cancelAlert();
 
 			SimVar.SetSimVarValue('L:WT_NAV_HOLD_INDEX', 'number', this.holdWaypointIndex);
 			this.state = HoldsDirectorState.TURNING_OUTBOUND;
 		} else {
-			this.alertIfClose(planeState, this.fixCoords);
 			this.trackLeg(this.prevFixCoords, this.fixCoords, planeState);
 		}
 	}
@@ -189,12 +189,10 @@ class HoldsDirector {
 
 			if (this.isAbeam(dtk, planeState.position, this.fixCoords)) {
 				this.recalculateHold(planeState);
-				this.cancelAlert();
 
 				SimVar.SetSimVarValue('L:WT_NAV_HOLD_INDEX', 'number', this.holdWaypointIndex);
 				this.state = HoldsDirectorState.OUTBOUND;
 			} else {
-				this.alertIfClose(planeState, this.fixCoords);
 				this.trackLeg(this.prevFixCoords, this.fixCoords, planeState);
 			}
 		}
@@ -211,12 +209,10 @@ class HoldsDirector {
 
 			if (this.isAbeam(dtk, planeState.position, this.fixCoords)) {
 				this.recalculateHold(planeState);
-				this.cancelAlert();
 
 				SimVar.SetSimVarValue('L:WT_NAV_HOLD_INDEX', 'number', this.holdWaypointIndex);
 				this.state = HoldsDirectorState.ENTRY_PARALLEL_OUTBOUND;
 			} else {
-				this.alertIfClose(planeState, this.fixCoords);
 				this.trackLeg(this.prevFixCoords, this.fixCoords, planeState);
 			}
 		}
@@ -274,35 +270,12 @@ class HoldsDirector {
 
 			if (this.isAbeam(dtk, planeState.position, this.inboundLeg[1])) {
 				this.recalculateHold(planeState);
-				this.cancelAlert();
 
 				this.state = HoldsDirectorState.TURNING_OUTBOUND;
 			} else {
 				this.trackLeg(this.inboundLeg[0], this.inboundLeg[1], planeState);
-				this.alertIfClose(planeState, this.inboundLeg[1]);
 			}
 		}
-	}
-
-	/**
-	 * Activates the waypoint alert if close enough to the provided fix.
-	 * @param {AircraftState} planeState The current aircraft state.
-	 * @param {LatLongAlt} fix The fix to alert for.
-	 */
-	alertIfClose(planeState, fix) {
-		const alertDistance = 3 * (planeState.groundSpeed / 3600);
-		const fixDistance = Avionics.Utils.computeGreatCircleDistance(planeState.position, fix);
-
-		if (fixDistance <= alertDistance) {
-			SimVar.SetSimVarValue('L:WT_CJ4_WPT_ALERT', 'number', 1);
-		}
-	}
-
-	/**
-	 * Cancels the waypoint alert.
-	 */
-	cancelAlert() {
-		SimVar.SetSimVarValue('L:WT_CJ4_WPT_ALERT', 'number', 0);
 	}
 
 	/**
@@ -313,12 +286,10 @@ class HoldsDirector {
 		const dtk = AutopilotMath.desiredTrack(this.inboundLeg[0], this.inboundLeg[1], planeState.position);
 
 		if (this.isAbeam(dtk, planeState.position, this.inboundLeg[1])) {
-			this.cancelAlert();
 			SimVar.SetSimVarValue('L:WT_NAV_HOLD_INDEX', 'number', -1);
 
 			this.state = HoldsDirectorState.EXITED;
 		} else {
-			this.alertIfClose(planeState, this.inboundLeg[1]);
 			this.trackLeg(this.inboundLeg[0], this.inboundLeg[1], planeState);
 		}
 	}
@@ -386,6 +357,7 @@ class HoldsDirector {
 	isAbeam(dtk, planePosition, fixCoords) {
 		const planeToFixTrack = Avionics.Utils.computeGreatCircleHeading(planePosition, fixCoords);
 		const trackDiff = Math.abs(Avionics.Utils.diffAngle(dtk, planeToFixTrack));
+
 		return trackDiff > 91;
 	}
 

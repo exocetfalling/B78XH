@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --bodyHeightScale: 1;
     --colorAmber: #ffbf00;
 }
@@ -23,7 +23,7 @@ html {
 
 html body {
     -webkit-user-select: none;
-    font-family: Roboto-Regular;
+    font-family: var(--font);
     font-size: calc(var(--viewportHeightRatio) * (36px / 21.6) * var(--currentPageHeight) / 100);
     color: white;
     height: 100%;
@@ -465,7 +465,7 @@ jet-pfd-vspeed-indicator[irs-state=aligned] {
     display: none;
 }
 
-#AttBox[irs-state=off], #AttText[irs-state=off], #AttBox[irs-state=aligning], #AttText[irs-state=aligning]{
+#AttBox[irs-state=off], #AttText[irs-state=off], #AttBox[irs-state=aligning], #AttText[irs-state=aligning] {
     display: block;
 }
 
@@ -488,7 +488,7 @@ b787-10-pfd-element #RightDisplay > .bottom > #FakeHdgSvg > text {
     alignment-baseline: central;
 }
 
-#FakeHdgSvg[irs-state=off], #FakeHdgSvg[irs-state=aligning]{
+#FakeHdgSvg[irs-state=off], #FakeHdgSvg[irs-state=aligning] {
     display: block;
     position: absolute;
 }

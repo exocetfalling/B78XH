@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --bodyHeightScale: 1;
 }
 
@@ -50,11 +50,11 @@ html body {
 :root {
     --eicasWhite: white;
     --eicasBlack: black;
-    --eicasDarkGrey: #323232;
-    --eicasLightGrey: #969696;
-    --eicasBlue: #009696;
+    --eicasDarkGrey: rgb(50, 50, 50);
+    --eicasLightGrey: rgb(150, 150, 150);
+    --eicasBlue: rgb(0, 150, 150);
     --eicasGreen: green;
-    --eicasOrange: #db7200;
+    --eicasOrange: rgb(219, 114, 0);
     --eicasRed: red;
     --eicasMagenta: magenta;
 }
@@ -69,7 +69,6 @@ b787-10-info-element {
 }
 
 b787-10-info-element #title {
-    margin: 10px;
     color: white;
     font-size: 35px;
 }
@@ -98,3 +97,4 @@ b787-10-info-element[border=right] #Borders {
     border-right: 2px inset white;
 }
 
+/*# sourceMappingURL=B787_10_INFO.css.map */

@@ -1,5 +1,15 @@
-﻿:root {
+:root {
     --bodyHeightScale: 1;
+    --eicasWhite: white;
+    --eicasBlack: black;
+    --eicasDarkGrey: #323232;
+    --eicasLightGrey: #969696;
+    --eicasBlue: #009696;
+    --eicasGreen: green;
+    --eicasOrange: #db7200;
+    --eicasRed: red;
+    --eicasMagenta: magenta;
+    --eicasAmber: #ffbf00;
 }
 
 @keyframes TemporaryShow {
@@ -22,7 +32,7 @@ html {
 
 html body {
     -webkit-user-select: none;
-    font-family: Roboto-Regular;
+    font-family: var(--font);
     font-size: calc(var(--viewportHeightRatio) * (36px / 21.6) * var(--currentPageHeight) / 100);
     color: white;
     height: 100%;
@@ -50,14 +60,13 @@ html body {
 :root {
     --eicasWhite: white;
     --eicasBlack: black;
-    --eicasDarkGrey: #323232;
-    --eicasLightGrey: #969696;
-    --eicasBlue: #009696;
+    --eicasDarkGrey: rgb(50, 50, 50);
+    --eicasLightGrey: rgb(150, 150, 150);
+    --eicasBlue: rgb(0, 150, 150);
     --eicasGreen: green;
-    --eicasOrange: #db7200;
+    --eicasOrange: rgb(219, 114, 0);
     --eicasRed: red;
     --eicasMagenta: magenta;
-    --eicasAmber: #ffbf00;
 }
 
 b787-10-sys-element {
@@ -306,227 +315,9 @@ b787-10-sys-element[border=right] #Borders {
     border-right: 2px inset white;
 }
 
-/** Custom CSS */
-/** Copied from B78XH (should be same in both versions) */
-
-
-b787-10-sys-element #Pages #GEAR_Page path#gears-main-path {
-    stroke: var(--eicasBlue);
-    stroke-width: 6px;
-    fill: none;
-}
-
-b787-10-sys-element #Pages #GEAR_Page #door-labels text.door-label {
-    font-size: 46px;
-    text-anchor: middle;
-    fill: var(--eicasBlue);
-}
-
-b787-10-sys-element #Pages #GEAR_Page #gears-numbers text.gear-number-label {
-    font-size: 46px;
-    text-anchor: middle;
-    fill: var(--eicasBlue);
-}
-
-b787-10-sys-element #Pages #GEAR_Page #tire-pressures text.tire-pressure-label {
-    font-family: Roboto-Light;
-    letter-spacing: -4px;
-    font-size: 40px;
-    text-anchor: middle;
-    fill: var(--eicasWhite);
-}
-
-b787-10-sys-element #Pages #GEAR_Page #brake-temperatures text.brake-temperature-label {
-    font-family: Roboto-Light;
-    letter-spacing: -2px;
-    font-size: 40px;
-    fill: var(--eicasWhite);
-}
-
-b787-10-sys-element #Pages #GEAR_Page #brake-temperatures text.brake-temperature-label-1, text.brake-temperature-label-5, text.brake-temperature-label-3, text.brake-temperature-label-7 {
-    text-anchor: end;
-}
-
-b787-10-sys-element #Pages #GEAR_Page #brake-temperatures text.brake-temperature-label-2, text.brake-temperature-label-6, text.brake-temperature-label-4, text.brake-temperature-label-8 {
-    text-anchor: start;
-}
-
-b787-10-sys-element #Pages #GEAR_Page #gear-doors #door-rects rect.door-rect {
-    fill: none;
-    stroke: var(--eicasWhite);
-    stroke-width: 9
-}
-
-b787-10-sys-element #Pages #GEAR_Page #gear-doors #crosshatches path.crosshatch {
-    stroke: var(--eicasWhite);
-    stroke-width: 3px;
-    visibility: hidden;
-}
-
-b787-10-sys-element #Pages #GEAR_Page #gear-doors.transit #crosshatches path.crosshatch {
-    visibility: visible;
-}
-
-
-b787-10-sys-element #Pages #GEAR_Page #gear-doors #door-status-labels text.door-status-label {
-    font-family: Roboto-Light;
-    letter-spacing: -4px;
-    font-size: 50px;
-    fill: var(--eicasWhite);
-    visibility: hidden;
-}
-
-
-b787-10-sys-element #Pages #GEAR_Page #gear-doors.up #door-status-labels text.door-status-label,
-b787-10-sys-element #Pages #GEAR_Page #gear-doors.down #door-status-labels text.door-status-label,
-b787-10-sys-element #Pages #GEAR_Page #gear-doors.inactive #door-status-labels text.door-status-label {
-    visibility: visible;
-}
-
-b787-10-sys-element #Pages #GEAR_Page #door-labels text.door-label {
-    font-size: 46px;
-    text-anchor: middle;
-    fill: var(--eicasBlue);
-}
-
-b787-10-sys-element #Pages #STAT_Page #boxes path.box {
-    fill: var(--eicasBlue);
-}
-
-b787-10-sys-element #Pages #STAT_Page #box-labels text.box-label {
-    font-size: 40px;
-    text-anchor: middle;
-    fill: var(--eicasBlue);
-}
-
-b787-10-sys-element #Pages #STAT_Page #boxes-content text.box-content-label {
-    font-size: 28px;
-    fill: var(--eicasBlue);
-}
-
-b787-10-sys-element #Pages #STAT_Page #boxes-content text.box-content-value {
-    font-family: Roboto-Light;
-    font-size: 36px;
-    text-anchor: middle;
-    fill: var(--eicasWhite);
-}
-
-b787-10-sys-element #Pages #STAT_Page #boxes-content tspan.unit {
-    font-size: 28px;
-    fill: var(--eicasWhite);
-}
-
-b787-10-sys-element #Pages #HYD_Page #boxes-top rect.box {
-    stroke: var(--eicasBlue);
-    stroke-width: 2px;
-}
-
-b787-10-sys-element #Pages #HYD_Page #texts text {
-    font-weight: bold;
-    font-size: 28px;
-    fill: var(--eicasBlue);
-    text-align: center;
-    text-anchor: middle;
-}
-
-b787-10-sys-element #Pages #HYD_Page #boxes-top-texts text > tspan {
-    font-weight: bold;
-    font-size: 28px;
-    fill: var(--eicasBlue);
-    text-align: center;
-    text-anchor: middle;
-}
-
-b787-10-sys-element #Pages #HYD_Page #boxes-qty path.box-qty {
-    fill: var(--eicasLightGrey);
-    stroke: var(--eicasBlue);
-    stroke-width: 4;
-}
-
-b787-10-sys-element #Pages #HYD_Page #boxes-qty path.qty-clip {
-    fill: var(--eicasBlack);
-}
-
-b787-10-sys-element #Pages #HYD_Page #boxes-qty path.qty-clip {
-    fill: var(--eicasBlack);
-}
-
-b787-10-sys-element #Pages #HYD_Page path.greens {
-    fill: var(--eicasGreen);
-}
-
-b787-10-sys-element #Pages #HYD_Page path.whites {
-    fill: var(--eicasWhite);
-}
-
-b787-10-sys-element #Pages #HYD_Page path.greens[state=off] {
-    display: none;
-}
-
-b787-10-sys-element #Pages #HYD_Page path.greens[state=on] {
-    display: block;
-}
-
-
-b787-10-sys-element #Pages #DOOR_Page path {
-    stroke-width: 3px;
-    stroke: var(--eicasBlue);
-    fill: none;
-}
-
-b787-10-sys-element #Pages #DOOR_Page text {
-    font-size: 36px;
-    text-align: end;
-    letter-spacing: -1.5px;
-    fill: var(--eicasBlue);
-}
-
-b787-10-sys-element #Pages #DOOR_Page text.text-left {
-    font-size: 36px;
-    text-align: end;
-    letter-spacing: -1.5px;
-    fill: var(--eicasBlue);
-}
-
-b787-10-sys-element #Pages #DOOR_Page text.text-right {
-    direction: ltr;
-    text-anchor: end
-}
-
-b787-10-sys-element #Pages #DOOR_Page .static-hidden {
-    visibility: hidden;
-}
-
-b787-10-sys-element #Pages #DOOR_Page .static-visible {
-    visibility: visible;
-}
-
-b787-10-sys-element #Pages #DOOR_Page .door {
-    fill: #000000;
-}
-
-b787-10-sys-element #Pages #DOOR_Page .door-open {
-    stroke: var(--eicasAmber);
-    stroke-width: 3
-}
-
-b787-10-sys-element #Pages #DOOR_Page path.fuseladge-gray-mask {
-    fill: var(--eicasDarkGrey);
-    stroke-width: 0;
-    stroke: none;
-}
-
-b787-10-sys-element #Pages #DOOR_Page text.entry_a_text {
-    fill: var(--eicasGreen);
-}
-
-b787-10-sys-element #Pages #DOOR_Page text#lavatory-text.vacant {
-    fill: var(--eicasGreen);
-}
-
-b787-10-sys-element #Pages #DOOR_Page text#lavatory-text.occupied {
-    fill: var(--eicasWhite);
-}
+/**
+    AIR PAGE definitions
+ */
 
 b787-10-sys-element #Pages #AIR_Page #white-lines path {
     stroke-width: 3;
@@ -632,6 +423,188 @@ b787-10-sys-element #Pages #AIR_Page #static-texts #top-texts text {
     font-size: 32px;
 }
 
+/**
+ * GEAR PAGE definitions
+ */
+
+b787-10-sys-element #Pages #GEAR_Page path#gears-main-path {
+    stroke: var(--eicasBlue);
+    stroke-width: 6px;
+    fill: none;
+}
+
+b787-10-sys-element #Pages #GEAR_Page #door-labels text.door-label {
+    font-size: 46px;
+    text-anchor: middle;
+    fill: var(--eicasBlue);
+}
+
+b787-10-sys-element #Pages #GEAR_Page #gears-numbers text.gear-number-label {
+    font-size: 46px;
+    text-anchor: middle;
+    fill: var(--eicasBlue);
+}
+
+b787-10-sys-element #Pages #GEAR_Page #tire-pressures text.tire-pressure-label {
+    font-family: Roboto-Light;
+    letter-spacing: -4px;
+    font-size: 40px;
+    text-anchor: middle;
+    fill: var(--eicasWhite);
+}
+
+b787-10-sys-element #Pages #GEAR_Page #brake-temperatures text.brake-temperature-label {
+    font-family: Roboto-Light;
+    letter-spacing: -2px;
+    font-size: 40px;
+    fill: var(--eicasWhite);
+}
+
+b787-10-sys-element #Pages #GEAR_Page #brake-temperatures text.brake-temperature-label-1, text.brake-temperature-label-5, text.brake-temperature-label-3, text.brake-temperature-label-7 {
+    text-anchor: end;
+}
+
+b787-10-sys-element #Pages #GEAR_Page #brake-temperatures text.brake-temperature-label-2, text.brake-temperature-label-6, text.brake-temperature-label-4, text.brake-temperature-label-8 {
+    text-anchor: start;
+}
+
+b787-10-sys-element #Pages #GEAR_Page #gear-doors #door-rects rect.door-rect {
+    fill: none;
+    stroke: var(--eicasWhite);
+    stroke-width: 9
+}
+
+b787-10-sys-element #Pages #GEAR_Page #gear-doors #crosshatches path.crosshatch {
+    stroke: var(--eicasWhite);
+    stroke-width: 3px;
+    visibility: hidden;
+}
+
+b787-10-sys-element #Pages #GEAR_Page #gear-doors.transit #crosshatches path.crosshatch {
+    visibility: visible;
+}
+
+
+b787-10-sys-element #Pages #GEAR_Page #gear-doors #door-status-labels text.door-status-label {
+    font-family: Roboto-Light;
+    letter-spacing: -4px;
+    font-size: 50px;
+    fill: var(--eicasWhite);
+    visibility: hidden;
+}
+
+
+b787-10-sys-element #Pages #GEAR_Page #gear-doors.up #door-status-labels text.door-status-label,
+b787-10-sys-element #Pages #GEAR_Page #gear-doors.down #door-status-labels text.door-status-label,
+b787-10-sys-element #Pages #GEAR_Page #gear-doors.inactive #door-status-labels text.door-status-label {
+    visibility: visible;
+}
+
+b787-10-sys-element #Pages #GEAR_Page #door-labels text.door-label {
+    font-size: 46px;
+    text-anchor: middle;
+    fill: var(--eicasBlue);
+}
+
+/**
+ * DOOR PAGE definitions
+ */
+
+b787-10-sys-element #Pages #DOOR_Page path {
+    stroke-width: 3px;
+    stroke: var(--eicasBlue);
+    fill: none;
+}
+
+b787-10-sys-element #Pages #DOOR_Page text {
+    font-size: 36px;
+    text-align: end;
+    letter-spacing: -1.5px;
+    fill: var(--eicasBlue);
+}
+
+b787-10-sys-element #Pages #DOOR_Page text.text-left {
+    font-size: 36px;
+    text-align: end;
+    letter-spacing: -1.5px;
+    fill: var(--eicasBlue);
+}
+
+b787-10-sys-element #Pages #DOOR_Page text.text-right {
+    direction: ltr;
+    text-anchor: end
+}
+
+b787-10-sys-element #Pages #DOOR_Page .static-hidden {
+    visibility: hidden;
+}
+
+b787-10-sys-element #Pages #DOOR_Page .static-visible {
+    visibility: visible;
+}
+
+b787-10-sys-element #Pages #DOOR_Page .door {
+    fill: #000000;
+}
+
+b787-10-sys-element #Pages #DOOR_Page .door-open {
+    stroke: var(--eicasAmber);
+    stroke-width: 3
+}
+
+b787-10-sys-element #Pages #DOOR_Page path.fuseladge-gray-mask {
+    fill: var(--eicasDarkGrey);
+    stroke-width: 0;
+    stroke: none;
+}
+
+b787-10-sys-element #Pages #DOOR_Page text.entry_a_text {
+    fill: var(--eicasGreen);
+}
+
+b787-10-sys-element #Pages #DOOR_Page text#lavatory-text.vacant {
+    fill: var(--eicasGreen);
+}
+
+b787-10-sys-element #Pages #DOOR_Page text#lavatory-text.occupied {
+    fill: var(--eicasWhite);
+}
+
+/**
+ * STAT PAGE Definitions
+ */
+
+b787-10-sys-element #Pages #STAT_Page #boxes path.box {
+    fill: var(--eicasBlue);
+}
+
+b787-10-sys-element #Pages #STAT_Page #box-labels text.box-label {
+    font-size: 40px;
+    text-anchor: middle;
+    fill: var(--eicasBlue);
+}
+
+b787-10-sys-element #Pages #STAT_Page #boxes-content text.box-content-label {
+    font-size: 28px;
+    fill: var(--eicasBlue);
+}
+
+b787-10-sys-element #Pages #STAT_Page #boxes-content text.box-content-value {
+    font-family: Roboto-Light;
+    font-size: 36px;
+    text-anchor: middle;
+    fill: var(--eicasWhite);
+}
+
+b787-10-sys-element #Pages #STAT_Page #boxes-content tspan.unit {
+    font-size: 28px;
+    fill: var(--eicasWhite);
+}
+
+/**
+ * FCTL PAGE Definitions
+ */
+
 b787-10-sys-element #Pages #FCTL_Page #fuselage path {
     stroke: var(--eicasBlue);
     stroke-width: 3px;
@@ -713,16 +686,19 @@ b787-10-sys-element #Pages #FCTL_Page text.label {
     fill: var(--eicasBlue);
     font-size: 32px;
     letter-spacing: -2px;
-    text-anchor: middle; }
+    text-anchor: middle;
+}
 
 b787-10-sys-element #Pages #FCTL_Page #boxes rect {
     stroke: var(--eicasGreen);
     stroke-width: 3;
 }
+
 b787-10-sys-element text {
     fill: var(--eicasWhite);
     font-size: 45px;
-    text-anchor: start; }
+    text-anchor: start;
+}
 
 b787-10-sys-element #Pages #FCTL_Page text.box-label {
     fill: var(--eicasGreen);
@@ -730,3 +706,40 @@ b787-10-sys-element #Pages #FCTL_Page text.box-label {
     letter-spacing: -2px;
     text-anchor: middle;
 }
+
+/**
+ * ELEC PAGE Definitions
+ */
+
+b787-10-sys-element #Pages #ELEC_Page text.titles {
+    font-size: 17px;
+    fill: var(--eicasBlue);
+}
+
+/**
+ * EFIS PAGE Definitions
+ */
+
+b787-10-sys-element #Pages #EFIS_DSP_Page text.button-titles-blue {
+    font-size: 20px;
+    fill: var(--eicasBlue);
+}
+
+b787-10-sys-element #Pages #EFIS_DSP_Page text.button-titles {
+    fill: #ededed;
+    font-size: 20px;
+}
+
+b787-10-sys-element #Pages #EFIS_DSP_Page text.button-text {
+    fill: #ededed;
+    font-size: 20px;
+    font-family: "Roboto Medium";
+}
+
+b787-10-sys-element #Pages #EFIS_DSP_Page text.box-titles {
+    fill: #ededed;
+    font-size: 18px;
+    font-family: "Roboto Medium";
+}
+
+/*# sourceMappingURL=B787_10_SYS.css.map */

@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --bodyHeightScale: 1;
 }
 
@@ -22,7 +22,7 @@ html {
 
 html body {
     -webkit-user-select: none;
-    font-family: Roboto-Regular;
+    font-family: var(--font);
     font-size: calc(var(--viewportHeightRatio) * (36px / 21.6) * var(--currentPageHeight) / 100);
     color: white;
     height: 100%;
@@ -117,3 +117,4 @@ map-instrument #WeatherSVG {
     height: 100%;
 }
 
+/*# sourceMappingURL=MapInstrument.css.map */

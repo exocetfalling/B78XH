@@ -1,18 +1,18 @@
 // Simplane.getNextWaypointName(), Math.round(Simplane.getNextWaypointTrack()), Simplane.getNextWaypointDistance(), Simplane.getNextWaypointETA()
 
 Simplane.getNextWaypointName = () => {
-    return FlightPlanManager.DEBUG_INSTANCE.getActiveWaypointIdent();
+	return FlightPlanManager.DEBUG_INSTANCE.getActiveWaypointIdent();
 };
 
 Simplane.getNextWaypointTrack = () => {
-    return SimVar.GetSimVarValue("L:WT_CJ4_DTK", "number");
-    // return FlightPlanManager.DEBUG_INSTANCE.getBearingToActiveWaypoint();
+	return SimVar.GetSimVarValue('L:WT_CJ4_DTK', 'number');
+	// return FlightPlanManager.DEBUG_INSTANCE.getBearingToActiveWaypoint();
 };
 
 Simplane.getNextWaypointDistance = () => {
-    return FlightPlanManager.DEBUG_INSTANCE.getDistanceToActiveWaypoint();
+	return FlightPlanManager.DEBUG_INSTANCE.getDistanceToActiveWaypoint();
 };
 
 Simplane.getNextWaypointETA = () => {
-    return FlightPlanManager.DEBUG_INSTANCE.getETEToActiveWaypoint();
+	return FlightPlanManager.DEBUG_INSTANCE.getETEToActiveWaypoint();
 };

@@ -4,6 +4,11 @@ const fs = require('fs');
 const zip = require('gulp-zip');
 const del = require('del');
 const bump = require('gulp-update-version');
+const pipeline = require('readable-stream').pipeline;
+const mergeStream = require('merge-stream');
+const rollup = require('gulp-rollup');
+const ts = require('gulp-typescript');
+
 
 /** Default mathjs configuration does not support BigNumbers */
 //const math = require('mathjs');
@@ -24,9 +29,10 @@ var packageSize = 0;
 
 /** Directories configuration **/
 /** Directories for layout and manifest **/
-const directoriesToProcess = ['./**', '!*.*', '!*', '!./DOCS/**', '!./build/**', '!./release/**', '!./node_modules/**'];
+const directoriesToProcess = ['./**', '!*.*', '!*', '!./html_ui/Pages/VCockpit/Core/**', '!./DOCS/**', '!./build/**', '!./release/**', '!./node_modules/**', '!./src/**'];
+const directoriesToProcessDEV = ['./**', '!*.*', '!*', '!./DOCS/**', '!./build/**', '!./release/**', '!./node_modules/**', '!./src/**'];
 /** Directories for release**/
-const directoriesToRelease = ['./**', '!*', 'LICENSE', 'thirdparty_licenses.txt', './manifest.json', './layout.json', '!./DOCS/**', '!./build/**', '!./release/**', '!./node_modules/**'];
+const directoriesToRelease = ['./**', '!*', 'LICENSE', 'thirdparty_licenses.txt', './manifest.json', './layout.json', '!./html_ui/Pages/VCockpit/Core/**', '!./DOCS/**', '!./build/**', '!./release/**', '!./node_modules/**', '!./src/**'];
 
 /** Internal Transformers */
 const _prepareLayoutFile = (data) => {
@@ -39,14 +45,30 @@ const _prepareLayoutFile = (data) => {
 	});
 };
 
+const TerminalColors = {
+	default: '\x1b[0m',
+	black: '\x1b[30m',
+	red: '\x1b[31m',
+	green: '\x1b[32m',
+	yellow: '\x1b[33m',
+	blue: '\x1b[34m',
+	magenta: '\x1b[35m',
+	cyan: '\x1b[36m',
+	white: '\x1b[37m'
+};
+
+function log(message, color = TerminalColors.default) {
+	console.log(color + message + TerminalColors.default);
+}
+
 const _updateManifest = () => {
-	console.log('Updating manifest.json');
+	log('Updating manifest.json.', TerminalColors.yellow);
 	let originalManifest = fs.readFileSync('manifest.json').toString();
 	let manifestJson = JSON.parse(originalManifest);
 	manifestJson.total_package_size = String(packageSize).padStart(20, '0');
 	fs.writeFile('manifest.json', JSON.stringify(manifestJson, null, 4), () => {
 	});
-	console.log('manifest.json updated.');
+	log('manifest.json updated.', TerminalColors.green);
 };
 
 const copyPackageVersion = () => {
@@ -77,6 +99,13 @@ function defaultTask(callback) {
 }
 
 function buildTask() {
+	/**
+	 * This is important for resetting the array with watch (monitorSDKSource and so on)
+	 * @type {number}
+	 */
+	layoutOutput.content.length = 0;
+
+	console.log(layoutOutput.content.length);
 	return gulp.src(directoriesToProcess, {nodir: true, cwd: './'})
 	.pipe(
 		through.obj(function (file, _, callback) {
@@ -91,9 +120,37 @@ function buildTask() {
 	).on('data', function (data) {
 		_prepareLayoutFile(data);
 	}).on('end', function () {
-		console.log('Creating layout.json');
+		log('Creating layout.json', TerminalColors.yellow);
 		fs.writeFile('layout.json', JSON.stringify(layoutOutput, null, 4), _updateManifest);
-		console.log('layout.json created.');
+		log('layout.json created.', TerminalColors.green);
+	});
+}
+
+function buildDEVTask() {
+	/**
+	 * This is important for resetting the array with watch (monitorSDKSource and so on)
+	 * @type {number}
+	 */
+	layoutOutput.content.length = 0;
+
+	console.log(layoutOutput.content.length);
+	return gulp.src(directoriesToProcessDEV, {nodir: true, cwd: './'})
+	.pipe(
+		through.obj(function (file, _, callback) {
+			const data = {
+				relativePath: file.relative,
+				fileSize: file.stat.size,
+				fileDate: math.chain(file.stat.mtimeMs).multiply(10000.0).add(datePlusConstant).done()
+			};
+			this.push(data);
+			callback();
+		})
+	).on('data', function (data) {
+		_prepareLayoutFile(data);
+	}).on('end', function () {
+		log('Creating layout.json', TerminalColors.yellow);
+		fs.writeFile('layout.json', JSON.stringify(layoutOutput, null, 4), _updateManifest);
+		log('layout.json created.', TerminalColors.green);
 	});
 }
 
@@ -141,8 +198,141 @@ function preBumpTask(callback) {
 	});
 }
 
+const HDSDKProject = ts.createProject('./src/hdsdk/tsconfig.json');
+
+function buildHDSDKTask() {
+	let res = gulp.src('src/hdsdk/**/*.ts').pipe(HDSDKProject());
+	return pipeline(
+		res.dts,
+		gulp.dest('src/hdsdk/types'),
+		res.js,
+		gulp.dest('build/cache/hdsdk')
+	);
+}
+
+const HDLoggerProject = ts.createProject('./src/hdlogger/tsconfig.json');
+
+function buildHDLoggerTask() {
+	let res = gulp.src('src/hdlogger/**/*.ts').pipe(HDLoggerProject());
+	return pipeline(
+		res.dts,
+		gulp.dest('src/hdlogger/types'),
+		res.js,
+		gulp.dest('build/cache/hdlogger')
+	);
+}
+
+const InstrumentsProject = ts.createProject('./src/instruments/tsconfig.json');
+
+function buildInstrumentsTask() {
+	let res = gulp.src('src/instruments/**/*.ts').pipe(InstrumentsProject());
+	return pipeline(
+		res.dts,
+		gulp.dest('src/instruments/types'),
+		res.js,
+		gulp.dest('build/cache/instruments')
+	);
+}
+
+function rollupHDSDKTask() {
+	return pipeline(
+		gulp.src('build/cache/hdsdk/**/*.js'),
+		rollup({
+			input: 'build/cache/hdsdk/hdsdk.js',
+			output: {
+				format: 'umd',
+				sourcemap: false,
+				extend: true,
+				name: 'window'
+			}
+		}),
+		gulp.dest('build/cache/rollups')
+	);
+}
+
+function rollupHDLoggerTask() {
+	return pipeline(
+		gulp.src('build/cache/hdlogger/**/*.js'),
+		rollup({
+			input: 'build/cache/hdlogger/hdlogger.js',
+			output: {
+				format: 'umd',
+				sourcemap: false,
+				extend: true,
+				name: 'window'
+			}
+		}),
+		gulp.dest('build/cache/rollups')
+	);
+}
+
+function copyHDSDKTask() {
+	return pipeline(
+		gulp.src('build/cache/rollups/hdsdk.js'),
+		gulp.dest('html_ui/Heavy/libs')
+	);
+}
+
+function copyHDLoggerTask() {
+	return pipeline(
+		gulp.src('build/cache/rollups/hdlogger.js'),
+		gulp.dest('html_ui/Heavy/libs')
+	);
+}
+
+function copyInstrumentsTask() {
+	return pipeline(
+		gulp.src('build/cache/instruments/**/*'),
+		gulp.dest('html_ui/Pages/VCockpit/Instruments')
+	);
+}
+
+function cleanBuildCache(callback) {
+	del('build/**/*');
+	callback();
+}
+
+function cleanBuildCacheSDK(callback) {
+	del('build/cache/hdsdk/**/*');
+	callback();
+}
+
+function cleanBuildCacheLogger(callback) {
+	del('build/cache/hdlogger/**/*');
+	callback();
+}
+
+function cleanBuildCacheInstruments(callback) {
+	del('build/cache/instruments/**/*');
+	callback();
+}
+
+function monitorHDSDKSourceDirectory() {
+	log('Monitoring build folder.\n', TerminalColors.blue);
+	gulp.watch(['src/hdsdk/**/*', '!src/hdsdk/tsconfig.json'], {ignoreInitial: true}, gulp.series(cleanBuildCache, buildHDSDKTask, rollupHDSDKTask, copyHDSDKTask, cleanBuildCache, buildTask)).on('change', function (path, stats) {
+		log('Source files were changed. Starting build process...', TerminalColors.red);
+	});
+}
+
+function monitorHDLoggerSourceDirectory() {
+	log('Monitoring build folder.\n', TerminalColors.blue);
+	gulp.watch(['src/hdlogger/**/*', '!src/hdlogger/tsconfig.json'], {ignoreInitial: true}, gulp.series(cleanBuildCacheLogger, buildHDLoggerTask, rollupHDLoggerTask, copyHDLoggerTask, cleanBuildCacheLogger, buildTask)).on('change', function (path, stats) {
+		log('Source files were changed. Starting build process...', TerminalColors.red);
+	});
+}
+
 exports.release = gulp.series(deleteReleaseCache, buildTask, copyFilesForReleaseToCache, releaseTask, deleteReleaseCache);
 exports.default = buildTask;
 exports.build = buildTask;
+exports.buildDEV = buildDEVTask;
 exports.bump = bumpTask;
 exports.prebump = preBumpTask;
+exports.buildSDK = gulp.series(cleanBuildCache, buildHDSDKTask, rollupHDSDKTask, copyHDSDKTask, cleanBuildCacheSDK, buildTask);
+exports.buildLogger = gulp.series(cleanBuildCacheLogger, buildHDLoggerTask, rollupHDLoggerTask, copyHDLoggerTask, cleanBuildCacheLogger, buildTask);
+exports.buildInstruments = gulp.series(cleanBuildCacheInstruments, buildInstrumentsTask, copyInstrumentsTask, cleanBuildCacheInstruments, buildTask);
+
+/**
+ * Monitoring
+ */
+exports.monitorSDKSource = monitorHDSDKSourceDirectory;
+exports.monitorHDLoggerSource = monitorHDLoggerSourceDirectory;
