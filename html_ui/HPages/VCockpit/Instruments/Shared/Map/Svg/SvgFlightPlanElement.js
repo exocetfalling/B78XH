@@ -15,7 +15,6 @@ class SvgFlightPlanElement extends SvgMapElement {
 
 	id(map) {
 		return 'flight-plan-' + this.flightPlanIndex + '-map-' + map.index;
-		;
 	}
 
 	appendToMap(map) {
@@ -29,7 +28,6 @@ class SvgFlightPlanElement extends SvgMapElement {
 		container.setAttribute('height', '1024px');
 		container.setAttribute('x', '0');
 		container.setAttribute('y', '0');
-
 		this._flightPathCanvas = document.createElement('canvas');
 		this._flightPathCanvas.setAttribute('width', '1024px');
 		this._flightPathCanvas.setAttribute('height', '1024px');
@@ -48,6 +46,7 @@ class SvgFlightPlanElement extends SvgMapElement {
 			context.clearRect(0, 0, 1024, 1024);
 
 			const fplnCount = (SimVar.GetSimVarValue('L:MAP_SHOW_TEMPORARY_FLIGHT_PLAN', 'number') === 1) ? 2 : 1;
+
 			const temporaryPlanStyle = '#00dcf0';
 			const activePlanStyle = 'magenta';
 			const missedPlanStyle = 'cyan';
@@ -75,16 +74,21 @@ class SvgFlightPlanElement extends SvgMapElement {
 
 					//Active leg
 					if (waypoints[activeWaypointIndex] && waypoints[activeWaypointIndex - 1]) {
-						this.buildPathFromWaypoints(waypoints, activeWaypointIndex - 1, activeWaypointIndex + 1, map, (index !== 0 ? temporaryPlanStyle : activePlanStyle), false);
+						this.buildPathFromWaypoints(waypoints, activeWaypointIndex - 1, activeWaypointIndex + 1, map, (index !== 0 ? temporaryPlanStyle : activePlanStyle), (index !== 0));
 					}
 
 					//Missed approach preview
-					if (missedSegment.offset > -1 && CJ4_MapSymbols.hasSymbol(CJ4_MapSymbol.MISSEDAPPR)) {
-						this.buildPathFromWaypoints(waypoints, missedSegment.offset - 1, waypoints.length - 1, map, missedPlanStyle, (index !== 0));
+					//if (missedSegment.offset > -1 && CJ4_MapSymbols.hasSymbol(CJ4_MapSymbol.MISSEDAPPR)) {
+					/**
+					 * Show missed segment by force
+					 */
+					if (missedSegment.offset > -1) {
+						this.buildPathFromWaypoints(waypoints, missedSegment.offset - 1, waypoints.length - 1, map, missedPlanStyle, false);
 					}
 
 					//Remainder of plan
 					this.buildPathFromWaypoints(waypoints, activeWaypointIndex, mainPathEnd, map, (index !== 0 ? temporaryPlanStyle : activePlanStyle), (index !== 0));
+					//this.buildPathFromWaypoints(waypoints, activeWaypointIndex, mainPathEnd, map, (index !== 0 ? temporaryPlanStyle : activePlanStyle), false);
 				}
 			}
 		}
@@ -102,43 +106,53 @@ class SvgFlightPlanElement extends SvgMapElement {
 
 		context.lineWidth = 2;
 		context.strokeStyle = style;
-		/**
-		 * Performance issue
-		 */
 		if (isDashed === true) {
-			//context.setLineDash([5, 5]);
+			context.setLineDash([10, 10]);
 		} else {
-			//context.setLineDash([]);
+			context.setLineDash([]);
 		}
 
 		let prevWaypoint;
+		let prevInFrame = false;
 		for (let i = startIndex; i < endIndex; i++) {
 			const waypoint = waypoints[i];
 			const pos = map.coordinatesToXY(waypoint.infos.coordinates);
-
+			const inFrame = map.isInFrame(map.coordinatesToXY(waypoint.infos.coordinates), 2)
+			const nextWaypoint = (waypoints[i + 1] !== undefined ? waypoints[i + 1] : undefined);
+			const nextInFrame = (nextWaypoint !== undefined ? map.isInFrame(map.coordinatesToXY(nextWaypoint.infos.coordinates), 2) : false)
 			if (i === startIndex || (prevWaypoint && prevWaypoint.endsInDiscontinuity)) {
 				context.moveTo(pos.x, pos.y);
 			} else {
-				//Draw great circle segments if more than 2 degrees longitude difference
-				const longDiff = Math.abs(waypoint.infos.coordinates.long - prevWaypoint.infos.coordinates.long);
-				if (longDiff > 2) {
-					const numSegments = Math.floor(longDiff / 2);
-					const startingLatLon = new LatLon(prevWaypoint.infos.coordinates.lat, prevWaypoint.infos.coordinates.long);
-					const endingLatLon = new LatLon(waypoint.infos.coordinates.lat, waypoint.infos.coordinates.long);
+				if(prevInFrame || inFrame || nextInFrame){
+					//Draw great circle segments if more than 2 degrees longitude difference
+					const longDiff = Math.abs(waypoint.infos.coordinates.long - prevWaypoint.infos.coordinates.long);
+					if (longDiff > 2) {
+						const numSegments = Math.floor(longDiff / 2);
+						const startingLatLon = new LatLon(prevWaypoint.infos.coordinates.lat, prevWaypoint.infos.coordinates.long);
+						const endingLatLon = new LatLon(waypoint.infos.coordinates.lat, waypoint.infos.coordinates.long);
 
-					const segmentPercent = 1 / numSegments;
-					for (let j = 0; j <= numSegments; j++) {
-						const segmentEnd = startingLatLon.intermediatePointTo(endingLatLon, j * segmentPercent);
-						const segmentEndVec = map.coordinatesToXY(new LatLongAlt(segmentEnd.lat, segmentEnd.lon));
-
-						context.lineTo(segmentEndVec.x, segmentEndVec.y);
+						const segmentPercent = 1 / numSegments;
+						var lastSegmentInFrame = false;
+						for (let j = 0; j <= numSegments; j++) {
+							const segmentEnd = startingLatLon.intermediatePointTo(endingLatLon, j * segmentPercent);
+							const segmentEndVec = map.coordinatesToXY(new LatLongAlt(segmentEnd.lat, segmentEnd.lon));
+							const segmentInFrame = map.isInFrame(segmentEndVec, 2);
+							if(segmentInFrame){
+								lastSegmentInFrame = true;
+								context.lineTo(segmentEndVec.x, segmentEndVec.y);
+							}
+							if(!segmentInFrame && lastSegmentInFrame){
+								context.lineTo(segmentEndVec.x, segmentEndVec.y);
+								break;
+							}
+						}
+					} else {
+						context.lineTo(pos.x, pos.y);
 					}
-				} else {
-					context.lineTo(pos.x, pos.y);
 				}
 			}
-
 			prevWaypoint = waypoint;
+			prevInFrame = inFrame;
 		}
 
 		for (let i = startIndex + 1; i < endIndex; i++) {
@@ -220,7 +234,7 @@ class SvgBackOnTrackElement extends SvgMapElement {
 	createDraw(map) {
 		let container = document.createElementNS(Avionics.SVG.NS, 'svg');
 		container.id = this.id(map);
-		container.setAttribute('overflow', 'visible');
+		diffAndSetAttribute(container, 'overflow', 'visible');
 		if (map.config.flightPlanDirectLegStrokeWidth > 0) {
 			this._outlineLine = document.createElementNS(Avionics.SVG.NS, 'line');
 			this._outlineLine.setAttribute('stroke', this.overrideColor != '' ? this.overrideColor : map.config.flightPlanDirectLegStrokeColor);
@@ -258,7 +272,7 @@ class SvgApproachFlightPlanDebugElement extends SvgMapElement {
 	createDraw(map) {
 		let container = document.createElementNS(Avionics.SVG.NS, 'svg');
 		container.id = this.id(map);
-		container.setAttribute('overflow', 'visible');
+		diffAndSetAttribute(container, 'overflow', 'visible');
 		this._path = document.createElementNS(Avionics.SVG.NS, 'path');
 		this._path.setAttribute('stroke', 'red');
 		this._path.setAttribute('stroke-width', '4');

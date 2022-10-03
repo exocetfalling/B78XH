@@ -1,5 +1,3 @@
-Include.addScript('/B78XH/Enums/B78XH_LocalVariables.js');
-
 class B787_10_MFD extends BaseAirliners {
 	constructor() {
 		super();

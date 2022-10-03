@@ -1,5 +1,3 @@
-Include.addScript('/Heavy/Utils/HeavyDataStorage.js');
-
 class B787_10_ND extends B787_10_CommonMFD.MFDTemplateElement {
 	constructor() {
 		super(...arguments);
@@ -61,7 +59,7 @@ class B787_10_ND extends B787_10_CommonMFD.MFDTemplateElement {
 		let isFullscreen = true;
 		if (_widthPercent <= 50)
 			isFullscreen = false;
-		this.setAttribute('halfsize', (isFullscreen) ? 'false' : 'true');
+		diffAndSetAttribute(this, 'halfsize', (isFullscreen) ? 'false' : 'true');
 		if (this.compass)
 			this.compass.setFullscreen(isFullscreen);
 		if (this.map)
@@ -92,6 +90,7 @@ class B787_10_ND extends B787_10_CommonMFD.MFDTemplateElement {
 			case 'AUTOPILOT_CTR':
 				if (this.map.mode != Jet_NDCompass_Display.PLAN) {
 					this.mapIsCentered = !this.mapIsCentered;
+					SimVar.SetSimVarValue('L:B78XH_IS_ND_CENTERED:' + this.gps.instrumentIndex, 'Bool', this.mapIsCentered);
 					this.forceMapUpdate = true;
 					this.onNavButton(B787_10_NavButtons.MAP);
 					this.navMenu.refresh();
@@ -179,7 +178,7 @@ class B787_10_ND extends B787_10_CommonMFD.MFDTemplateElement {
 		if (this.modeChangeMask && this.modeChangeTimer >= 0) {
 			this.modeChangeTimer -= _deltaTime / 1000;
 			if (this.modeChangeTimer <= 0) {
-				this.modeChangeMask.style.display = 'none';
+				diffAndSetStyle(this.modeChangeMask, StyleProperty.display, 'none');
 				this.modeChangeTimer = -1;
 			}
 		}
@@ -229,8 +228,9 @@ class B787_10_ND extends B787_10_CommonMFD.MFDTemplateElement {
 			} else {
 				this.compass.showArcRange(false);
 			}
+
 			if (this.modeChangeMask) {
-				this.modeChangeMask.style.display = 'block';
+				diffAndSetStyle(this.modeChangeMask, StyleProperty.display, 'block');
 				this.modeChangeTimer = 0.15;
 			}
 			this.forceMapUpdate = false;
@@ -523,18 +523,18 @@ class B787_10_ND_NavigationMenu extends Airliners.PopupMenu_Handler {
 		let width = this.menuWidth - x;
 		let height = this.menuTop + 1;
 		let bg = document.createElementNS(Avionics.SVG.NS, 'rect');
-		bg.setAttribute('d', 'M' + (x) + ' ' + (y + height) + ' l15 ' + (-height) + ' l' + (width - 15) + ' 0 l0 ' + (height));
-		bg.setAttribute('x', x.toString());
-		bg.setAttribute('y', y.toString());
-		bg.setAttribute('width', width.toString());
-		bg.setAttribute('height', height.toString());
-		bg.setAttribute('fill', 'black');
+		diffAndSetAttribute(bg, 'd', 'M' + (x) + ' ' + (y + height) + ' l15 ' + (-height) + ' l' + (width - 15) + ' 0 l0 ' + (height));
+		diffAndSetAttribute(bg, 'x', x + '');
+		diffAndSetAttribute(bg, 'y', y + '');
+		diffAndSetAttribute(bg, 'width', width + '');
+		diffAndSetAttribute(bg, 'height', height + '');
+		diffAndSetAttribute(bg, 'fill', 'black');
 		_root.appendChild(bg);
 		let shape = document.createElementNS(Avionics.SVG.NS, 'path');
-		shape.setAttribute('d', 'M' + (x) + ' ' + (y + height - 1) + ' l15 ' + (-(height - 1)) + ' l' + (width - 15) + ' 0 l0 ' + (height));
-		shape.setAttribute('fill', 'none');
-		shape.setAttribute('stroke', 'white');
-		shape.setAttribute('stroke-width', this.sectionBorderSize.toString());
+		diffAndSetAttribute(shape, 'd', 'M' + (x) + ' ' + (y + height - 1) + ' l15 ' + (-(height - 1)) + ' l' + (width - 15) + ' 0 l0 ' + (height));
+		diffAndSetAttribute(shape, 'fill', 'none');
+		diffAndSetAttribute(shape, 'stroke', 'white');
+		diffAndSetAttribute(shape, 'stroke-width', this.sectionBorderSize + '');
 		_root.appendChild(shape);
 	}
 
@@ -659,7 +659,6 @@ class B787_10_ND_Map extends MapInstrumentElement {
 				[210, 750, 770]
 			]
 		];
-
 	}
 
 	get mode() {
@@ -708,7 +707,8 @@ class B787_10_ND_Map extends MapInstrumentElement {
 				this.instrument.setPlaneScale(2.0);
 				this.instrument.setPlaneIcon(1);
 				this.instrument.zoomRanges = this.getAdaptiveRanges(2.12);
-				this._parent.setAttribute('mapstyle', 'rose');
+				diffAndSetAttribute(this._parent, 'mapstyle', 'rose');
+				this.instrument.resize();
 				break;
 			}
 			case Jet_NDCompass_Display.ARC: {
@@ -718,7 +718,8 @@ class B787_10_ND_Map extends MapInstrumentElement {
 				this.instrument.setPlaneScale(2.5);
 				this.instrument.setPlaneIcon(1);
 				this.instrument.zoomRanges = (this._fullscreen) ? this.getAdaptiveRanges(2.4) : this.getAdaptiveRanges(1.42);
-				this._parent.setAttribute('mapstyle', 'arc');
+				diffAndSetAttribute(this._parent, 'mapstyle', 'arc');
+				this.instrument.resize();
 				break;
 			}
 			case Jet_NDCompass_Display.PLAN: {
@@ -728,7 +729,8 @@ class B787_10_ND_Map extends MapInstrumentElement {
 				this.instrument.setPlaneScale(2.0);
 				this.instrument.setPlaneIcon(3);
 				this.instrument.zoomRanges = this.getAdaptiveRanges(4.6);
-				this._parent.setAttribute('mapstyle', 'plan');
+				diffAndSetAttribute(this._parent, 'mapstyle', 'plan');
+				this.instrument.resize();
 				break;
 			}
 		}
@@ -739,9 +741,9 @@ class B787_10_ND_Map extends MapInstrumentElement {
 		switch (this.mode) {
 			case Jet_NDCompass_Display.ARC:
 				this.instrument.zoomRanges = (this._fullscreen) ? this.getAdaptiveRanges(1.95) : this.getAdaptiveRanges(1.42);
+				this.instrument.resize();
 				break;
 		}
-		this.instrument.resize(0,0)
 	}
 
 	showWeather() {
@@ -761,6 +763,10 @@ class B787_10_ND_Map extends MapInstrumentElement {
 		this.updateAltitudeArc(_deltaTime);
 	}
 
+	/**
+	 * TODO: Refactor... To many SimVar requests
+	 * @param _deltatime
+	 */
 	updateAltitudeArc(_deltatime) {
 		let altitudeArcPath = document.getElementById('altitudeArcPath');
 		let altitudeArcPosition = this.calculateAltitudeArcPosition();
@@ -809,51 +815,23 @@ class B787_10_ND_Map extends MapInstrumentElement {
 		return Math.abs(Simplane.getAutoPilotDisplayedAltitudeLockValue() - Simplane.getAltitude());
 	}
 
-	extendMFDHtmlElementsWithIrsState() {
-		[this._parent.querySelector('#Map'),
-			this._parent.querySelector('#headingGroup'),
-			this._parent.querySelector('#ArcRangeGroup'),
-			this._parent.querySelector('#CourseInfo'),
-			this._parent.querySelector('#selectedHeadingGroup'),
-			this._parent.querySelector('#selectedTrackGroup'),
-			this._parent.querySelector('#ILSGroup'),
-			this._parent.querySelector('#currentRefGroup'),
-			this._parent.querySelector('#RangeGroup')
-		].forEach((element) => {
-			if (element) {
-				element.setAttribute('irs-state', 'off');
-			}
-		});
-
-		let compassCircleGroup = this._parent.querySelector('#circleGroup');
-		if (compassCircleGroup) {
-			compassCircleGroup.querySelectorAll('text').forEach((element) => {
-				if (element) {
-					element.setAttribute('irs-state', 'off');
-				}
-			});
-		}
-
-		let outerCircleGroup = this._parent.querySelector('#outerCircle');
-		if (outerCircleGroup) {
-			outerCircleGroup.querySelectorAll('text').forEach((element) => {
-				if (element) {
-					element.setAttribute('irs-state', 'off');
-				}
-			});
-		}
-	}
-
 	updateMapIfIrsNotAligned() {
-		this.extendMFDHtmlElementsWithIrsState();
 		let irsLState = SimVar.GetSimVarValue('L:B78XH_IRS_L_STATE', 'Number');
 		let irsRState = SimVar.GetSimVarValue('L:B78XH_IRS_R_STATE', 'Number');
+		if(this.irsAligned && (irsLState > 1 || irsRState > 1)){
+			return;
+		} else {
+			this.irsAligned = false;
+		}
+
 		if ((irsLState > 1 || irsRState > 1)) {
 			this._parent.querySelectorAll('[irs-state]').forEach((element) => {
 				if (element) {
+					//element.removeAttribute('irs-state')
 					element.setAttribute('irs-state', 'aligned');
 				}
 			});
+			this.irsAligned = true;
 			return;
 		} else if (irsLState > 0 || irsRState > 0) {
 			this._parent.querySelectorAll('[irs-state]').forEach((element) => {
@@ -978,7 +956,7 @@ class B787_10_ND_Info extends NavSystemElement {
 
 	showSymbol(_symbol, _show) {
 		if (this.allSymbols[_symbol])
-			this.allSymbols[_symbol].setAttribute('visibility', (_show) ? 'visible' : 'hidden');
+			diffAndSetAttribute(this.allSymbols[_symbol], 'visibility', (_show) ? 'visible' : 'hidden');
 	}
 }
 

@@ -1,11 +1,4 @@
-Include.addScript('/B78XH/Enums/B78XH_LocalVariables.js');
-
 class B787_10_PFD extends BaseAirliners {
-	constructor() {
-		super();
-		this.initDuration = 7000;
-	}
-
 	get templateID() {
 		return 'B787_10_PFD';
 	}
@@ -26,7 +19,6 @@ class B787_10_PFD extends BaseAirliners {
 				this.mainPage
 			])
 		];
-		this.maxUpdateBudget = 12;
 	}
 
 	disconnectedCallback() {
@@ -145,11 +137,11 @@ class B787_10_PFD_MainPage extends NavSystemPage {
 		this.compass.svg.setMode(this.map_DisplayMode, this.map_NavigationMode);
 		this.map.setMode(this.map_DisplayMode);
 		if (this.map_DisplayMode == Jet_NDCompass_Display.PLAN)
-			this.gps.setAttribute('mapstyle', 'plan');
+			diffAndSetAttribute(this.gps, 'mapstyle', 'plan');
 		else if (this.map_IsCentered)
-			this.gps.setAttribute('mapstyle', 'rose');
+			diffAndSetAttribute(this.gps, 'mapstyle', 'rose');
 		else
-			this.gps.setAttribute('mapstyle', 'arc');
+			diffAndSetAttribute(this.gps, 'mapstyle', 'arc');
 	}
 
 	extendHtmlElementsWithIrsState() {
@@ -264,13 +256,18 @@ class B787_10_PFD_VSpeed extends NavSystemElement {
 
 	onUpdate(_deltaTime) {
 		var vSpeed = Math.round(Simplane.getVerticalSpeed());
-		this.vsi.setAttribute('vspeed', vSpeed.toString());
+		diffAndSetAttribute(this.vsi, 'vspeed', vSpeed + '');
 		if (Simplane.getAutoPilotVerticalSpeedHoldActive()) {
 			var selVSpeed = Math.round(Simplane.getAutoPilotVerticalSpeedHoldValue());
-			this.vsi.setAttribute('selected_vspeed', selVSpeed.toString());
-			this.vsi.setAttribute('selected_vspeed_active', 'true');
+			diffAndSetAttribute(this.vsi, 'selected_vspeed', selVSpeed + '');
+
+			if (SimVar.GetSimVarValue('L:B78XH_CUSTOM_VNAV_DESCENT_ENABLED', 'Number') === 1) {
+				diffAndSetAttribute(this.vsi, 'selected_vspeed_active', 'false');
+			} else {
+				diffAndSetAttribute(this.vsi, 'selected_vspeed_active', 'true');
+			}
 		} else {
-			this.vsi.setAttribute('selected_vspeed_active', 'false');
+			diffAndSetAttribute(this.vsi, 'selected_vspeed_active', 'false');
 		}
 	}
 
@@ -310,48 +307,74 @@ class B787_10_PFD_Altimeter extends NavSystemElement {
 	constructor() {
 		super();
 		this.isMTRSActive = false;
-		this.minimumReference = 200;
+		this.lastTimeKnobUsed = 0;
+		this.lastTimeKnobUsedHits = 0;
+		this.resetState = false;
 	}
-
 	init(root) {
-		this.altimeter = this.gps.getChildById('Altimeter');
+		this.altimeter = this.gps.getChildById("Altimeter");
 		this.altimeter.aircraft = Aircraft.AS01B;
 		this.altimeter.gps = this.gps;
 	}
-
 	onEnter() {
 	}
-
 	onUpdate(_deltaTime) {
 		this.altimeter.update(_deltaTime);
 	}
-
 	onExit() {
 	}
-
 	onEvent(_event) {
+		let increment = 1;
+		if (Date.now() - this.lastTimeKnobUsed < 300) {
+			if (this.lastTimeKnobUsedHits > 3) {
+				increment = 10;
+			}
+			this.lastTimeKnobUsedHits++;
+		}
+		else {
+			increment = 1;
+			this.lastTimeKnobUsedHits = 0;
+		}
+		this.lastTimeKnobUsed = Date.now();
+		const decisionHeightMode = Simplane.getMinimumReferenceMode();
 		switch (_event) {
-			case 'BARO_INC':
-				SimVar.SetSimVarValue('K:KOHLSMAN_INC', 'number', 1);
+			case "BARO_INC":
+				SimVar.SetSimVarValue("K:KOHLSMAN_INC", "number", 1);
 				break;
-			case 'BARO_DEC':
-				SimVar.SetSimVarValue('K:KOHLSMAN_DEC', 'number', 1);
+			case "BARO_DEC":
+				SimVar.SetSimVarValue("K:KOHLSMAN_DEC", "number", 1);
 				break;
-			case 'MTRS':
+			case "MTRS":
 				this.isMTRSActive = !this.isMTRSActive;
 				this.altimeter.showMTRS(this.isMTRSActive);
 				break;
-			case 'Mins_INC':
-				this.minimumReference += 10;
-				this.altimeter.minimumReferenceValue = this.minimumReference;
+			case "Mins_INC":
+				if (decisionHeightMode === MinimumReferenceMode.BARO) {
+					SimVar.SetSimVarValue("K:INCREASE_DECISION_ALTITUDE_MSL", "number", increment);
+					this.altimeter.setMinimumBaroVisibility(true);
+				}
+				else {
+					SimVar.SetSimVarValue("K:INCREASE_DECISION_HEIGHT", "number", increment);
+				}
 				break;
-			case 'Mins_DEC':
-				this.minimumReference -= 10;
-				this.altimeter.minimumReferenceValue = this.minimumReference;
+			case "Mins_DEC":
+				if (decisionHeightMode === MinimumReferenceMode.BARO) {
+					SimVar.SetSimVarValue("K:DECREASE_DECISION_ALTITUDE_MSL", "number", increment);
+					this.altimeter.setMinimumBaroVisibility(true);
+				}
+				else {
+					SimVar.SetSimVarValue("K:DECREASE_DECISION_HEIGHT", "number", increment);
+				}
 				break;
-			case 'Mins_Press':
-				this.minimumReference = 200;
-				this.altimeter.minimumReferenceValue = this.minimumReference;
+			case "Mins_Press":
+				if (decisionHeightMode === MinimumReferenceMode.BARO) {
+					SimVar.SetSimVarValue("K:SET_DECISION_ALTITUDE_MSL", "number", this.altimeter.minimumResetValue);
+					this.altimeter.setMinimumBaroVisibility(this.resetState);
+					this.resetState = !this.resetState;
+				}
+				else {
+					SimVar.SetSimVarValue("K:SET_DECISION_HEIGHT", "number", this.altimeter.minimumResetValue);
+				}
 				break;
 		}
 	}
@@ -377,12 +400,12 @@ class B787_10_PFD_Attitude extends NavSystemElement {
 			this.hsi.update(_deltaTime);
 			var xyz = Simplane.getOrientationAxis();
 			if (xyz) {
-				this.hsi.setAttribute('pitch', (xyz.pitch / Math.PI * 180).toString());
-				this.hsi.setAttribute('bank', (xyz.bank / Math.PI * 180).toString());
+				diffAndSetAttribute(this.hsi, 'pitch', (xyz.pitch / Math.PI * 180) + '');
+				diffAndSetAttribute(this.hsi, 'bank', (xyz.bank / Math.PI * 180) + '');
 			}
-			this.hsi.setAttribute('slip_skid', Simplane.getInclinometer().toString());
-			this.hsi.setAttribute('radio_altitude', Simplane.getAltitudeAboveGround().toString());
-			this.hsi.setAttribute('radio_decision_height', this.gps.radioNav.getRadioDecisionHeight().toString());
+			diffAndSetAttribute(this.hsi, 'slip_skid', Simplane.getInclinometer() + '');
+			diffAndSetAttribute(this.hsi, 'radio_altitude', Simplane.getAltitudeAboveGround() + '');
+			diffAndSetAttribute(this.hsi, 'radio_decision_height', this.gps.radioNav.getRadioDecisionHeight() + '');
 		}
 	}
 
@@ -490,6 +513,8 @@ class B787_10_PFD_Compass extends NavSystemElement {
 			this.infos.simWaypointName = Simplane.getNextWaypointName();
 			this.infos.simWaypointETA = (SimVar.GetSimVarValue('E:ZULU TIME', 'seconds') + Simplane.getNextWaypointETA()) % (24 * 3600);
 			this.infos.simWaypointDistance = Simplane.getNextWaypointDistance();
+			this.infos.simAdfLeft = this.gps.radioNav.getADFActiveFrequency(1);
+			this.infos.simAdfRight = this.gps.radioNav.getADFActiveFrequency(2);
 		}
 	}
 
@@ -517,133 +542,169 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 		this.bottom = this.height + this.top;
 		this.construct = () => {
 			this.svg = document.createElementNS(Avionics.SVG.NS, 'svg');
-			this.svg.setAttribute('id', 'ViewBox');
-			this.svg.setAttribute('viewBox', '0 0 ' + this.viewboxWidth + ' ' + this.viewboxHeight);
+			diffAndSetAttribute(this.svg, 'id', 'ViewBox');
+			diffAndSetAttribute(this.svg, 'viewBox', '0 0 ' + this.viewboxWidth + ' ' + this.viewboxHeight);
 			this.windPlaneSpeedInfoGroup = document.createElementNS(Avionics.SVG.NS, 'g');
-			this.windPlaneSpeedInfoGroup.setAttribute('id', 'WindPlaneSpeedInfoGroup');
+			diffAndSetAttribute(this.windPlaneSpeedInfoGroup, 'id', 'WindPlaneSpeedInfoGroup');
 			{
 				var lineHeight = 26;
 				var textTemplate = (document.createElementNS(Avionics.SVG.NS, 'text'));
-				textTemplate.setAttribute('y', `${this.top + lineHeight}`);
-				textTemplate.setAttribute('font-family', 'Roboto-light');
-				textTemplate.setAttribute('text-transform', 'uppercase');
-				textTemplate.setAttribute('fill', 'white');
+				diffAndSetAttribute(textTemplate, 'y', `${this.top + lineHeight}`);
+				diffAndSetAttribute(textTemplate, 'font-family', 'Roboto-light');
+				diffAndSetAttribute(textTemplate, 'text-transform', 'uppercase');
+				diffAndSetAttribute(textTemplate, 'fill', 'white');
 				var groundSpeedLabelText = textTemplate.cloneNode();
-				groundSpeedLabelText.setAttribute('font-size', '15');
-				groundSpeedLabelText.innerHTML = 'GS';
-				groundSpeedLabelText.setAttribute('x', `${this.left}`);
+				diffAndSetAttribute(groundSpeedLabelText, 'font-size', '15');
+				diffAndSetText(groundSpeedLabelText, 'GS');
+				diffAndSetAttribute(groundSpeedLabelText, 'x', `${this.left}`);
 				this.windPlaneSpeedInfoGroup.appendChild(groundSpeedLabelText);
 				this.groundSpeedValueText = textTemplate.cloneNode();
-				this.groundSpeedValueText.setAttribute('font-size', lineHeight.toString());
-				this.groundSpeedValueText.setAttribute('x', `${this.left + 20}`);
-				this.groundSpeedValueText.innerHTML = Math.ceil(this.simGS).toString().padStart(3, '0');
+				diffAndSetAttribute(this.groundSpeedValueText, 'font-size', lineHeight + '');
+				diffAndSetAttribute(this.groundSpeedValueText, 'x', `${this.left + 20}`);
+				diffAndSetText(this.groundSpeedValueText, (Math.ceil(this.simGS) + '').padStart(3, '0'));
 				this.windPlaneSpeedInfoGroup.appendChild(this.groundSpeedValueText);
 				var trueAirSpeedLabelText = textTemplate.cloneNode();
-				trueAirSpeedLabelText.setAttribute('font-size', '15');
-				trueAirSpeedLabelText.innerHTML = 'TAS';
-				trueAirSpeedLabelText.setAttribute('x', `${this.left + 70}`);
+				diffAndSetAttribute(trueAirSpeedLabelText, 'font-size', '15');
+				diffAndSetText(trueAirSpeedLabelText, 'TAS');
+				diffAndSetAttribute(trueAirSpeedLabelText, 'x', `${this.left + 70}`);
 				this.windPlaneSpeedInfoGroup.appendChild(trueAirSpeedLabelText);
 				this.trueAirSpeedValueText = textTemplate.cloneNode();
-				this.trueAirSpeedValueText.setAttribute('font-size', lineHeight.toString());
-				this.trueAirSpeedValueText.setAttribute('x', `${this.left + 100}`);
-				this.trueAirSpeedValueText.innerHTML = Math.round(this.simTAS).toString().padStart(3, '0');
+				diffAndSetAttribute(this.trueAirSpeedValueText, 'font-size', lineHeight + '');
+				diffAndSetAttribute(this.trueAirSpeedValueText, 'x', `${this.left + 100}`);
+				diffAndSetText(this.trueAirSpeedValueText, (Math.round(this.simTAS) + '').padStart(3, '0'));
 				this.windPlaneSpeedInfoGroup.appendChild(this.trueAirSpeedValueText);
 				this.windDirectionValueText = textTemplate.cloneNode();
-				this.windDirectionValueText.setAttribute('font-size', lineHeight.toString());
-				this.windDirectionValueText.setAttribute('x', `${this.left}`);
-				this.windDirectionValueText.setAttribute('y', `${this.top + lineHeight * 2 + 5}`);
-				this.windDirectionValueText.innerHTML = Math.round(this.simWindDir).toString().padStart(3, '0');
+				diffAndSetAttribute(this.windDirectionValueText, 'font-size', lineHeight + '');
+				diffAndSetAttribute(this.windDirectionValueText, 'x', `${this.left}`);
+				diffAndSetAttribute(this.windDirectionValueText, 'y', `${this.top + lineHeight * 2 + 5}`);
+				diffAndSetText(this.windDirectionValueText, (Math.round(this.simWindDir) + '').padStart(3, '0'));
 				this.windPlaneSpeedInfoGroup.appendChild(this.windDirectionValueText);
 				var windInfoSeparator = textTemplate.cloneNode();
-				windInfoSeparator.setAttribute('font-size', lineHeight.toString());
-				windInfoSeparator.setAttribute('x', `${this.left + 44}`);
-				windInfoSeparator.setAttribute('y', `${this.top + lineHeight * 2 + 5}`);
-				windInfoSeparator.setAttribute('letter-spacing', '-10');
-				windInfoSeparator.innerHTML = '/';
+				diffAndSetAttribute(windInfoSeparator, 'font-size', lineHeight + '');
+				diffAndSetAttribute(windInfoSeparator, 'x', `${this.left + 44}`);
+				diffAndSetAttribute(windInfoSeparator, 'y', `${this.top + lineHeight * 2 + 5}`);
+				diffAndSetAttribute(windInfoSeparator, 'letter-spacing', '-10');
+				diffAndSetText(windInfoSeparator, '/');
 				this.windPlaneSpeedInfoGroup.appendChild(windInfoSeparator);
 				this.windSpeedValueText = textTemplate.cloneNode();
-				this.windSpeedValueText.setAttribute('font-size', lineHeight.toString());
-				this.windSpeedValueText.setAttribute('x', `${this.left + 65}`);
-				this.windSpeedValueText.setAttribute('y', `${this.top + lineHeight * 2 + 5}`);
-				this.windSpeedValueText.innerHTML = Math.round(this.simWindSpeed).toString();
+				diffAndSetAttribute(this.windSpeedValueText, 'font-size', lineHeight + '');
+				diffAndSetAttribute(this.windSpeedValueText, 'x', `${this.left + 65}`);
+				diffAndSetAttribute(this.windSpeedValueText, 'y', `${this.top + lineHeight * 2 + 5}`);
+				diffAndSetText(this.windSpeedValueText, Math.round(this.simWindSpeed) + '');
 				this.windPlaneSpeedInfoGroup.appendChild(this.windSpeedValueText);
 				this.windArrow = document.createElementNS(Avionics.SVG.NS, 'path');
-				this.windArrow.setAttribute('d', 'M-3 20, 3 20, 3 -20, 15 -20, 0 -40, -15 -20, -3 -20');
-				this.windArrow.setAttribute('fill', 'white');
-				this.windArrow.setAttribute('transform', 'translate(30, 100) scale(0.55) rotate(0)');
+				diffAndSetAttribute(this.windArrow, 'd', 'M-3 20, 3 20, 3 -20, 15 -20, 0 -40, -15 -20, -3 -20');
+				diffAndSetAttribute(this.windArrow, 'fill', 'white');
+				diffAndSetAttribute(this.windArrow, 'transform', 'translate(30, 100) scale(0.55) rotate(0)');
 				this.windPlaneSpeedInfoGroup.appendChild(this.windArrow);
 			}
 			this.svg.appendChild(this.windPlaneSpeedInfoGroup);
 			this.activeWaypointInfoGroup = document.createElementNS(Avionics.SVG.NS, 'g');
-			this.activeWaypointInfoGroup.setAttribute('id', 'ActiveWaypointInfoGroup');
+			diffAndSetAttribute(this.activeWaypointInfoGroup, 'id', 'ActiveWaypointInfoGroup');
 			{
 				var lineHeight = 26;
 				var textTemplate = (document.createElementNS(Avionics.SVG.NS, 'text'));
-				textTemplate.setAttribute('y', `${this.top + lineHeight}`);
-				textTemplate.setAttribute('font-family', 'Roboto-light');
-				textTemplate.setAttribute('text-transform', 'uppercase');
-				textTemplate.setAttribute('text-anchor', 'end');
-				textTemplate.setAttribute('fill', 'white');
+				diffAndSetAttribute(textTemplate, 'y', `${this.top + lineHeight}`);
+				diffAndSetAttribute(textTemplate, 'font-family', 'Roboto-light');
+				diffAndSetAttribute(textTemplate, 'text-transform', 'uppercase');
+				diffAndSetAttribute(textTemplate, 'text-anchor', 'end');
+				diffAndSetAttribute(textTemplate, 'fill', 'white');
 				this.activeWaypointNameText = textTemplate.cloneNode();
-				this.activeWaypointNameText.setAttribute('font-size', lineHeight.toString());
-				this.activeWaypointNameText.setAttribute('fill', '#ff00e0');
-				this.activeWaypointNameText.setAttribute('x', `${this.right - 25}`);
-				this.activeWaypointNameText.innerHTML = this.simWaypointName;
+				diffAndSetAttribute(this.activeWaypointNameText, 'font-size', lineHeight + '');
+				diffAndSetAttribute(this.activeWaypointNameText, 'fill', '#ff00e0');
+				diffAndSetAttribute(this.activeWaypointNameText, 'x', `${this.right - 25}`);
+				diffAndSetText(this.activeWaypointNameText, this.simWaypointName);
 				this.activeWaypointInfoGroup.appendChild(this.activeWaypointNameText);
 				var activeWaypointETAUnitText = textTemplate.cloneNode();
-				activeWaypointETAUnitText.setAttribute('font-size', '15');
-				activeWaypointETAUnitText.setAttribute('text-transform', 'capitalize');
-				activeWaypointETAUnitText.setAttribute('x', `${this.right}`);
-				activeWaypointETAUnitText.setAttribute('y', `${this.top + lineHeight * 2 + 5}`);
-				activeWaypointETAUnitText.innerHTML = 'Z';
+				diffAndSetAttribute(activeWaypointETAUnitText, 'font-size', '15');
+				diffAndSetAttribute(activeWaypointETAUnitText, 'text-transform', 'capitalize');
+				diffAndSetAttribute(activeWaypointETAUnitText, 'x', `${this.right}`);
+				diffAndSetAttribute(activeWaypointETAUnitText, 'y', `${this.top + lineHeight * 2 + 5}`);
+				diffAndSetText(activeWaypointETAUnitText, 'Z');
 				this.activeWaypointInfoGroup.appendChild(activeWaypointETAUnitText);
 				this.activeWaypointETAText = textTemplate.cloneNode();
-				this.activeWaypointETAText.setAttribute('font-size', lineHeight.toString());
-				this.activeWaypointETAText.setAttribute('x', `${this.right - 10}`);
-				this.activeWaypointETAText.setAttribute('y', `${this.top + lineHeight * 2 + 5}`);
-				this.activeWaypointETAText.innerHTML = Math.floor((this.simWaypointETA / 3600) % 24).toString().padStart(2, '0') + Math.floor((this.simWaypointETA / 60) % 60).toString().padStart(2, '0') + '.0';
+				diffAndSetAttribute(this.activeWaypointETAText, 'font-size', lineHeight + '');
+				diffAndSetAttribute(this.activeWaypointETAText, 'x', `${this.right - 10}`);
+				diffAndSetAttribute(this.activeWaypointETAText, 'y', `${this.top + lineHeight * 2 + 5}`);
+				diffAndSetText(this.activeWaypointETAText, (Math.floor((this.simWaypointETA / 3600) % 24) + '').padStart(2, '0') + (Math.floor((this.simWaypointETA / 60) % 60) + '').padStart(2, '0') + '.0');
 				this.activeWaypointInfoGroup.appendChild(this.activeWaypointETAText);
 				var activeWaypointDistanceToGoUnitText = textTemplate.cloneNode();
-				activeWaypointDistanceToGoUnitText.setAttribute('font-size', '15');
-				activeWaypointDistanceToGoUnitText.setAttribute('text-transform', 'capitalize');
-				activeWaypointDistanceToGoUnitText.setAttribute('x', `${this.right}`);
-				activeWaypointDistanceToGoUnitText.setAttribute('y', `${this.top + lineHeight * 3 + 7}`);
-				activeWaypointDistanceToGoUnitText.innerHTML = 'NM';
+				diffAndSetAttribute(activeWaypointDistanceToGoUnitText, 'font-size', '15');
+				diffAndSetAttribute(activeWaypointDistanceToGoUnitText, 'text-transform', 'capitalize');
+				diffAndSetAttribute(activeWaypointDistanceToGoUnitText, 'x', `${this.right}`);
+				diffAndSetAttribute(activeWaypointDistanceToGoUnitText, 'y', `${this.top + lineHeight * 3 + 7}`);
+				diffAndSetText(activeWaypointDistanceToGoUnitText, 'NM');
 				this.activeWaypointInfoGroup.appendChild(activeWaypointDistanceToGoUnitText);
 				this.activeWaypointDistanceToGoText = textTemplate.cloneNode();
-				this.activeWaypointDistanceToGoText.setAttribute('font-size', lineHeight.toString());
-				this.activeWaypointDistanceToGoText.setAttribute('x', `${this.right - 20}`);
-				this.activeWaypointDistanceToGoText.setAttribute('y', `${this.top + lineHeight * 3 + 7}`);
-				this.activeWaypointDistanceToGoText.innerHTML = this.simWaypointDistance.toFixed(2).padStart(2, '0');
+				diffAndSetAttribute(this.activeWaypointDistanceToGoText, 'font-size', lineHeight + '');
+				diffAndSetAttribute(this.activeWaypointDistanceToGoText, 'x', `${this.right - 20}`);
+				diffAndSetAttribute(this.activeWaypointDistanceToGoText, 'y', `${this.top + lineHeight * 3 + 7}`);
+				diffAndSetText(this.activeWaypointDistanceToGoText, fastToFixed(this.simWaypointDistance, 2).padStart(2, '0'));
 				this.activeWaypointInfoGroup.appendChild(this.activeWaypointDistanceToGoText);
 			}
 			this.svg.appendChild(this.activeWaypointInfoGroup);
 			this.activeAutopilotInfoGroup = document.createElementNS(Avionics.SVG.NS, 'g');
-			this.activeAutopilotInfoGroup.setAttribute('id', 'activeAutopilotInfoGroup');
+			diffAndSetAttribute(this.activeAutopilotInfoGroup, 'id', 'ActiveAutopilotInfoGroup');
 			{
 				var lineHeight = 26;
 				var textTemplate = (document.createElementNS(Avionics.SVG.NS, 'text'));
-				textTemplate.setAttribute('y', `${this.top + lineHeight}`);
-				textTemplate.setAttribute('font-family', 'Roboto-light');
-				textTemplate.setAttribute('text-transform', 'uppercase');
-				textTemplate.setAttribute('text-anchor', 'end');
-				textTemplate.setAttribute('fill', '#00FF21');
+				diffAndSetAttribute(textTemplate, 'y', `${this.top + lineHeight}`);
+				diffAndSetAttribute(textTemplate, 'font-family', 'Roboto-light');
+				diffAndSetAttribute(textTemplate, 'text-transform', 'uppercase');
+				diffAndSetAttribute(textTemplate, 'text-anchor', 'end');
+				diffAndSetAttribute(textTemplate, 'fill', '#00FF21');
 				this.selectedModeStatusText = textTemplate.cloneNode();
-				this.selectedModeStatusText.setAttribute('font-size', (lineHeight * .5).toString());
-				this.selectedModeStatusText.setAttribute('x', `${this.right - 25}`);
-				this.selectedModeStatusText.innerHTML = 'SEL';
+				diffAndSetAttribute(this.selectedModeStatusText, 'font-size', (lineHeight * .5) + '');
+				diffAndSetAttribute(this.selectedModeStatusText, 'x', `${this.right - 25}`);
+				diffAndSetText(this.selectedModeStatusText, 'SEL');
 				this.activeAutopilotInfoGroup.appendChild(this.selectedModeStatusText);
 				this.selectedModeText = textTemplate.cloneNode();
-				this.selectedModeText.setAttribute('font-size', (lineHeight * .5).toString());
-				this.selectedModeText.setAttribute('x', `${this.right - 25}`);
-				this.selectedModeText.innerHTML = this.simAutopilotHeadTrackMode;
+				diffAndSetAttribute(this.selectedModeText, 'font-size', (lineHeight * .5) + '');
+				diffAndSetAttribute(this.selectedModeText, 'x', `${this.right - 25}`);
+				diffAndSetText(this.selectedModeText, this.simAutopilotHeadTrackMode);
 				this.activeAutopilotInfoGroup.appendChild(this.selectedModeText);
 				this.selectedModeValueText = textTemplate.cloneNode();
-				this.selectedModeValueText.setAttribute('font-size', lineHeight.toString());
-				this.selectedModeValueText.setAttribute('x', `${this.right - 25}`);
-				this.selectedModeValueText.innerHTML = this.simAutopilotHeadTrackValue.toString();
+				diffAndSetAttribute(this.selectedModeValueText, 'font-size', lineHeight + '');
+				diffAndSetAttribute(this.selectedModeValueText, 'x', `${this.right - 25}`);
+				diffAndSetText(this.selectedModeValueText, this.simAutopilotHeadTrackValue + '');
 				this.activeAutopilotInfoGroup.appendChild(this.selectedModeValueText);
 			}
+			this.adfInfoGroup = document.createElementNS(Avionics.SVG.NS, 'g');
+			this.adfInfoGroup.setAttribute('id', 'AdfInfoGroup');
+			{
+				var textTemplate = (document.createElementNS(Avionics.SVG.NS, 'text'));
+				textTemplate.setAttribute('y', `${this.top + lineHeight}`);
+				textTemplate.setAttribute('font-family', 'Roboto');
+				textTemplate.setAttribute('text-transform', 'uppercase');
+				textTemplate.setAttribute('fill', 'cyan');
+				var adfLeftLabelText = textTemplate.cloneNode();
+				adfLeftLabelText.setAttribute('font-size', lineHeight.toString());
+				adfLeftLabelText.innerHTML = 'ADF L';
+				adfLeftLabelText.setAttribute('x', `${this.left}`);
+				adfLeftLabelText.setAttribute('y', `${this.bottom - 35}`);
+				this.adfInfoGroup.appendChild(adfLeftLabelText);
+				this.adfLeftValueText = textTemplate.cloneNode();
+				this.adfLeftValueText.setAttribute('font-size', lineHeight.toString());
+				this.adfLeftValueText.setAttribute('x', `${this.left}`);
+				this.adfLeftValueText.setAttribute('y', `${this.bottom - 10}`);
+				this.adfLeftValueText.innerHTML = (Math.floor(this.simAdfLeft).toString().padStart(3, '0')) + '.' + Math.floor((this.simAdfLeft - Math.floor(this.simAdfLeft)) * 10);
+				this.adfInfoGroup.appendChild(this.adfLeftValueText);
+				var adfRightLabelText = textTemplate.cloneNode();
+				adfRightLabelText.setAttribute('font-size', lineHeight.toString());
+				adfRightLabelText.setAttribute('text-anchor', 'end');
+				adfRightLabelText.innerHTML = 'ADF R';
+				adfRightLabelText.setAttribute('x', `${this.right}`);
+				adfRightLabelText.setAttribute('y', `${this.bottom - 35}`);
+				this.adfInfoGroup.appendChild(adfRightLabelText);
+				this.adfRightValueText = textTemplate.cloneNode();
+				this.adfRightValueText.setAttribute('font-size', lineHeight.toString());
+				this.adfRightValueText.setAttribute('text-anchor', 'end');
+				this.adfRightValueText.setAttribute('x', `${this.right}`);
+				this.adfRightValueText.setAttribute('y', `${this.bottom - 10}`);
+				this.adfRightValueText.innerHTML = (Math.floor(this.simAdfRight).toString().padStart(3, '0')) + '.' + Math.floor((this.simAdfRight - Math.floor(this.simAdfRight)) * 10);
+				this.adfInfoGroup.appendChild(this.adfRightValueText);
+			}
+			this.svg.appendChild(this.adfInfoGroup);
 			this.appendChild(this.svg);
 		};
 	}
@@ -659,7 +720,9 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 			'sim-waypoint-dist',
 			'sim-autopilot-on',
 			'sim-autopilot-headtrack-mode',
-			'sim-autopilot-headtrack-value'
+			'sim-autopilot-headtrack-value',
+			'sim-adf-left',
+			'sim-adf-right'
 		];
 	}
 
@@ -672,7 +735,7 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 	}
 
 	set simGS(value) {
-		this.setAttribute('sim-gs', `${value}`);
+		diffAndSetAttribute(this, 'sim-gs', `${value}`);
 	}
 
 	get simTAS() {
@@ -680,7 +743,7 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 	}
 
 	set simTAS(value) {
-		this.setAttribute('sim-tas', `${value}`);
+		diffAndSetAttribute(this, 'sim-tas', `${value}`);
 	}
 
 	get simWindDir() {
@@ -688,7 +751,7 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 	}
 
 	set simWindDir(value) {
-		this.setAttribute('sim-wind-dir', `${value}`);
+		diffAndSetAttribute(this, 'sim-wind-dir', `${value}`);
 	}
 
 	get simWindSpeed() {
@@ -696,7 +759,7 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 	}
 
 	set simWindSpeed(value) {
-		this.setAttribute('sim-wind-speed', `${value}`);
+		diffAndSetAttribute(this, 'sim-wind-speed', `${value}`);
 	}
 
 	get simPlaneAngle() {
@@ -704,7 +767,7 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 	}
 
 	set simPlaneAngle(value) {
-		this.setAttribute('sim-plane-angle', `${value}`);
+		diffAndSetAttribute(this, 'sim-plane-angle', `${value}`);
 	}
 
 	get simWaypointName() {
@@ -712,7 +775,7 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 	}
 
 	set simWaypointName(value) {
-		this.setAttribute('sim-waypoint-name', `${value}`);
+		diffAndSetAttribute(this, 'sim-waypoint-name', `${value}`);
 	}
 
 	get simWaypointETA() {
@@ -720,7 +783,7 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 	}
 
 	set simWaypointETA(value) {
-		this.setAttribute('sim-waypoint-eta', `${value}`);
+		diffAndSetAttribute(this, 'sim-waypoint-eta', `${value}`);
 	}
 
 	get simWaypointDistance() {
@@ -728,7 +791,7 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 	}
 
 	set simWaypointDistance(value) {
-		this.setAttribute('sim-waypoint-dist', `${value}`);
+		diffAndSetAttribute(this, 'sim-waypoint-dist', `${value}`);
 	}
 
 	get simIsAutopilotOn() {
@@ -737,7 +800,7 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 
 	set simIsAutopilotOn(value) {
 		if (value) {
-			this.setAttribute('sim-autopilot-on', '');
+			diffAndSetAttribute(this, 'sim-autopilot-on', '');
 		} else {
 			this.removeAttribute('sim-autopilot-on');
 		}
@@ -748,7 +811,7 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 	}
 
 	set simAutopilotHeadTrackMode(value) {
-		this.setAttribute('sim-autopilot-headtrack-mode', `${value}`);
+		diffAndSetAttribute(this, 'sim-autopilot-headtrack-mode', `${value}`);
 	}
 
 	get simAutopilotHeadTrackValue() {
@@ -756,80 +819,82 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 	}
 
 	set simAutopilotHeadTrackValue(value) {
-		this.setAttribute('sim-autopilot-headtrack-value', `${value}`);
+		diffAndSetAttribute(this, 'sim-autopilot-headtrack-value', `${value}`);
+	}
+
+	get simAdfLeft() {
+		return Number(this.getAttribute('sim-adf-left'));
+	}
+
+	set simAdfLeft(value) {
+		diffAndSetAttribute(this, 'sim-adf-left', `${value}`);
+	}
+
+	get simAdfRight() {
+		return Number(this.getAttribute('sim-adf-right'));
+	}
+
+	set simAdfRight(value) {
+		diffAndSetAttribute(this, 'sim-adf-right', `${value}`);
 	}
 
 	attributeChangedCallback(name, oldValue, newValue) {
+		if (newValue == oldValue)
+			return;
 		switch (name) {
 			case 'sim-gs':
-				if (newValue == oldValue)
-					break;
-				this.groundSpeedValueText.innerHTML = Math.round(this.simGS).toString().padStart(3, '0');
+				diffAndSetText(this.groundSpeedValueText, (Math.round(this.simGS) + '').padStart(3, '0'));
 				break;
 			case 'sim-tas':
-				if (newValue == oldValue)
-					break;
-				this.trueAirSpeedValueText.innerHTML = Math.round(this.simTAS).toString().padStart(3, '0');
+				diffAndSetText(this.trueAirSpeedValueText, (Math.round(this.simTAS) + '').padStart(3, '0'));
 				break;
 			case 'sim-wind-dir':
-				if (newValue == oldValue)
-					break;
 				this.updateWindDir();
 				break;
 			case 'sim-wind-speed':
-				if (newValue == oldValue)
-					break;
 				this.updateWindSpeed();
 				break;
 			case 'sim-plane-angle':
-				if (newValue == oldValue)
-					break;
 				this.updateWindArrow();
 				break;
 			case 'sim-waypoint-name':
-				if (newValue == oldValue)
-					break;
 				this.activeWaypointInfoGroup.classList.toggle('hide', this.simWaypointName.length == 0);
-				this.activeWaypointNameText.innerHTML = this.simWaypointName;
+				diffAndSetText(this.activeWaypointNameText, this.simWaypointName);
 				break;
 			case 'sim-waypoint-eta':
-				if (newValue == oldValue)
-					break;
-				this.activeWaypointETAText.innerHTML = Math.floor((this.simWaypointETA / 3600) % 24).toString().padStart(2, '0') + Math.floor((this.simWaypointETA / 60) % 60).toString().padStart(2, '0') + '.0';
+				diffAndSetText(this.activeWaypointETAText, (Math.floor((this.simWaypointETA / 3600) % 24) + '').padStart(2, '0') + (Math.floor((this.simWaypointETA / 60) % 60) + '').padStart(2, '0') + '.0');
 				break;
 			case 'sim-waypoint-dist':
-				if (newValue == oldValue)
-					break;
-				this.activeWaypointDistanceToGoText.innerHTML = this.simWaypointDistance.toFixed(2).padStart(2, '0');
+				diffAndSetText(this.activeWaypointDistanceToGoText, fastToFixed(this.simWaypointDistance, 2).padStart(2, '0'));
 				break;
 			case 'sim-autopilot-on':
-				if (newValue == oldValue)
-					break;
 				this.selectedModeStatusText.classList.toggle('hide', !this.simIsAutopilotOn);
 				break;
 			case 'sim-autopilot-headtrack-mode':
-				if (newValue == oldValue)
-					break;
-				this.selectedModeText.innerHTML = this.simAutopilotHeadTrackMode;
+				diffAndSetText(this.selectedModeText, this.simAutopilotHeadTrackMode);
 				break;
 			case 'sim-autopilot-headtrack-value':
-				if (newValue == oldValue)
-					break;
-				this.selectedModeValueText.innerHTML = `${this.simAutopilotHeadTrackValue}`;
+				diffAndSetText(this.selectedModeValueText, `${this.simAutopilotHeadTrackValue}`);
+				break;
+			case 'sim-adf-left':
+				this.adfLeftValueText.innerHTML = (Math.floor(this.simAdfLeft).toString().padStart(3, '0')) + '.' + Math.floor((this.simAdfLeft - Math.floor(this.simAdfLeft)) * 10);
+				break;
+			case 'sim-adf-right':
+				this.adfRightValueText.innerHTML = (Math.floor(this.simAdfRight).toString().padStart(3, '0')) + '.' + Math.floor((this.simAdfRight - Math.floor(this.simAdfRight)) * 10);
 				break;
 		}
 	}
 
 	updateWindSpeed() {
 		if (Simplane.getIsGrounded()) {
-			this.windSpeedValueText.innerHTML = '--';
+			diffAndSetText(this.windSpeedValueText, '--');
 			if (this.windStrongEnough) {
 				this.windStrongEnough = false;
 				this.updateWindArrow();
 			}
 		} else {
 			let speed = Math.round(this.simWindSpeed);
-			this.windSpeedValueText.innerHTML = speed.toString().padStart(2, '0');
+			diffAndSetText(this.windSpeedValueText, (speed + '').padStart(2, '0'));
 			if (this.windStrongEnough && speed < B787_10_PFD_CompassInfos.MIN_WIND_STRENGTH_FOR_ARROW_DISPLAY) {
 				this.windStrongEnough = false;
 				this.updateWindArrow();
@@ -852,9 +917,9 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 		let smoothedAngle = Utils.SmoothSin(startAngle, endAngle, 0.25, this.deltaTime / 1000);
 		this.smoothedWindAngle = smoothedAngle % 360;
 		if (this.windStrongEnough)
-			this.windDirectionValueText.innerHTML = this.smoothedWindAngle.toFixed(0).padStart(3, '0');
+			diffAndSetText(this.windDirectionValueText, fastToFixed(this.smoothedWindAngle, 0).padStart(3, '0'));
 		else
-			this.windDirectionValueText.innerHTML = '---';
+			diffAndSetText(this.windDirectionValueText, '---');
 		this.updateWindArrow();
 	}
 
@@ -873,12 +938,12 @@ class B787_10_PFD_CompassInfos extends HTMLElement {
 				}
 			}
 			if (transformStr)
-				this.windArrow.setAttribute('transform', transformStr + ' rotate(' + arrowAngle + ')');
+				diffAndSetAttribute(this.windArrow, 'transform', transformStr + ' rotate(' + arrowAngle + ')');
 			else
-				this.windArrow.setAttribute('transform', 'rotate(' + arrowAngle + ')');
-			this.windArrow.style.display = 'block';
+				diffAndSetAttribute(this.windArrow, 'transform', 'rotate(' + arrowAngle + ')');
+			diffAndSetStyle(this.windArrow, StyleProperty.display, 'block');
 		} else {
-			this.windArrow.style.display = 'none';
+			diffAndSetStyle(this.windArrow, StyleProperty.display, 'none');
 		}
 	}
 }
@@ -900,9 +965,9 @@ class B787_10_PFD_PlaneInfo extends NavSystemElement {
 		this.xpdr = this.gps.getChildById('Value_XPDR');
 		this.selcal = this.gps.getChildById('Value_SELCAL');
 		this.tail = this.gps.getChildById('Value_Tail');
-		this.freq.textContent = '---';
-		this.selcal.textContent = 'AS-BO';
-		this.tail.textContent = SimVar.GetSimVarValue('ATC ID', 'string');
+		diffAndSetText(this.freq, '---');
+		diffAndSetText(this.selcal, 'AS-BO');
+		diffAndSetText(this.tail, SimVar.GetSimVarValue('ATC ID', 'string'));
 		this.analog = this.gps.getChildById('Analog');
 		this.analogHour = this.gps.getChildById('Analog_Hour');
 		this.analogMin = this.gps.getChildById('Analog_Minutes');
@@ -930,26 +995,26 @@ class B787_10_PFD_PlaneInfo extends NavSystemElement {
 			if (this.analogHour) {
 				let secDeg = (6 * seconds) % 360;
 				let minDeg = (6 * minutes) % 360;
-				this.analogHour.setAttribute('transform', 'rotate(' + minDeg + ' 250 250)');
-				this.analogMin.setAttribute('transform', 'rotate(' + secDeg + ' 250 250)');
-				this.analog.setAttribute('visibility', (this.chronoVisible) ? 'visible' : 'hidden');
+				diffAndSetAttribute(this.analogHour, 'transform', 'rotate(' + minDeg + ' 250 250)');
+				diffAndSetAttribute(this.analogMin, 'transform', 'rotate(' + secDeg + ' 250 250)');
+				diffAndSetAttribute(this.analog, 'visibility', (this.chronoVisible) ? 'visible' : 'hidden');
 			}
 			if (this.digital) {
-				this.digital.textContent = Utils.timeToString(-1, minutes, seconds);
+				diffAndSetText(this.digital, Utils.timeToString(-1, minutes, seconds));
 				this.digital.classList.toggle('hide', !this.chronoVisible);
 			}
 		}
 		if (this.xpdr) {
 			let code = SimVar.GetSimVarValue('TRANSPONDER CODE:1', 'number');
-			this.xpdr.textContent = code.toString().padStart(4, '0');
+			diffAndSetText(this.xpdr, (code + '').padStart(4, '0'));
 		}
 		if (this.flight) {
 			let flightNumber = SimVar.GetSimVarValue('ATC FLIGHT NUMBER', 'string');
-			this.flight.textContent = (flightNumber != '') ? flightNumber : '787-10 Dreamliner';
+			diffAndSetText(this.flight, (flightNumber != '') ? flightNumber : '787-10 Dreamliner');
 		}
 		if (this.freq) {
 			let activeFreq = SimVar.GetSimVarValue('L:VHF_ACTIVE_INDEX:1', 'number') + 1;
-			this.freq.textContent = this.gps.radioNav.getVHFActiveFrequency(1, activeFreq).toFixed(3);
+			diffAndSetText(this.freq, fastToFixed(this.gps.radioNav.getVHFActiveFrequency(1, activeFreq), 3));
 		}
 	}
 
@@ -1000,7 +1065,7 @@ class B787_10_PFD_DayInfo extends NavSystemElement {
 			if (value) {
 				var seconds = Number.parseInt(value);
 				var time = Utils.SecondsToDisplayTime(seconds, true, true, false);
-				this.utc.textContent = time + 'z';
+				diffAndSetText(this.utc, time + 'z');
 			}
 		}
 		if (this.date) {
@@ -1019,11 +1084,9 @@ class B787_10_PFD_DayInfo extends NavSystemElement {
 					text += '0';
 				text += month;
 				text += '/';
-				var year = Math.trunc(Number.parseInt(value3) / 100);
-				if (year < 10)
-					text += '0';
+				var year = String(value3).substring(2, 4);
 				text += year;
-				this.date.textContent = text;
+				diffAndSetText(this.date, text);
 			}
 		}
 		if (this.elapsed) {
@@ -1031,7 +1094,7 @@ class B787_10_PFD_DayInfo extends NavSystemElement {
 			if (value >= this.flightStartTime) {
 				this.flightDuration = value - this.flightStartTime;
 			}
-			this.elapsed.textContent = Utils.SecondsToDisplayTime(this.flightDuration, true, false, false);
+			diffAndSetText(this.elapsed, Utils.SecondsToDisplayTime(this.flightDuration, true, false, false));
 		}
 	}
 

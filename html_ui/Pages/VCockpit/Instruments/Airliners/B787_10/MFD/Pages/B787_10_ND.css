@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --bodyHeightScale: 1;
     --colorAmber: #ffbf00;
 }
@@ -23,7 +23,7 @@ html {
 
 html body {
     -webkit-user-select: none;
-    font-family: Roboto-Regular;
+    font-family: var(--font);
     font-size: calc(var(--viewportHeightRatio) * (36px / 21.6) * var(--currentPageHeight) / 100);
     color: white;
     height: 100%;
@@ -51,11 +51,11 @@ html body {
 :root {
     --eicasWhite: white;
     --eicasBlack: black;
-    --eicasDarkGrey: #323232;
-    --eicasLightGrey: #969696;
-    --eicasBlue: #009696;
+    --eicasDarkGrey: rgb(50, 50, 50);
+    --eicasLightGrey: rgb(150, 150, 150);
+    --eicasBlue: rgb(0, 150, 150);
     --eicasGreen: green;
-    --eicasOrange: #db7200;
+    --eicasOrange: rgb(219, 114, 0);
     --eicasRed: red;
     --eicasMagenta: magenta;
 }
@@ -306,6 +306,11 @@ b787-10-nd-element #NDInfo #TopBox text.Large {
     font-size: 38px;
     fill: white;
 }
+
+b787-10-nd-element #NDInfo #TopBox #Waypoint #WP_Name {
+    fill: magenta;
+}
+
 
 b787-10-nd-element #NDInfo #TopBox text.Units {
     font-size: 30px;
@@ -576,7 +581,8 @@ map-instrument[irs-state=off], map-instrument[irs-state=inited], map-instrument[
 #RangeGroup[irs-state=off], #RangeGroup[irs-state=inited], #RangeGroup[irs-state=aligning],
 #NDInfo[irs-state=off], #NDInfo[irs-state=inited], #NDInfo[irs-state=aligning],
 #circleGroup text[irs-state=off], #circleGroup text[irs-state=inited], #circleGroup text[irs-state=aligning],
-#outerCircle text[irs-state=off], #outerCircle text[irs-state=inited], #outerCircle text[irs-state=aligning] {
+#outerCircle text[irs-state=off], #outerCircle text[irs-state=inited], #outerCircle text[irs-state=aligning],
+#trackingText[irs-state=off], #trackingText[irs-state=inited], #trackingText[irs-state=aligning]{
     display: none;
 }
 
@@ -688,39 +694,39 @@ map-instrument[irs-state=aligned],
 #currentRefGroup[irs-state=aligned],
 #RangeGroup[irs-state=aligned],
 #NDInfo[irs-state=aligned]
-#circleGroup text[irs-state=aligned]{
+#circleGroup text[irs-state=aligned] {
+    /** display: block; */
+}
+
+#time-to-align[irs-state=aligning] #time-to-align2[irs-state=aligning] {
     display: block;
 }
 
-#time-to-align[irs-state=aligning] #time-to-align2[irs-state=aligning]{
-    display:block;
-}
-
-#time-to-align[irs-state=off], #time-to-align[irs-state=aligned], #time-to-align2[irs-state=off], #time-to-align2[irs-state=aligned]{
-    display:none;
-}
-
-#align-times[irs-state=aligned], #align-times2[irs-state=aligned], #FakeMapBox[irs-state=aligned], #FakeCompassBoxHdg[irs-state=aligned], #FakeCompassBox[irs-state=aligned]{
+#time-to-align[irs-state=off], #time-to-align[irs-state=aligned], #time-to-align2[irs-state=off], #time-to-align2[irs-state=aligned] {
     display: none;
 }
 
-#FakeCompassBoxHdg[irs-state=off]{
-    display:block;
+#align-times[irs-state=aligned], #align-times2[irs-state=aligned], #FakeMapBox[irs-state=aligned], #FakeCompassBoxHdg[irs-state=aligned], #FakeCompassBox[irs-state=aligned] {
+    display: none;
 }
 
-#FakeCompassBoxHdg[irs-state=inited], #FakeCompassBoxHdg[irs-state=aligning], #FakeCompassBoxHdg[irs-state=aligned]{
-    display:none;
+#FakeCompassBoxHdg[irs-state=off] {
+    display: block;
 }
 
-#FakeCompassBox[irs-state=off], #FakeCompassBox[irs-state=aligned]{
-    display:none;
+#FakeCompassBoxHdg[irs-state=inited], #FakeCompassBoxHdg[irs-state=aligning], #FakeCompassBoxHdg[irs-state=aligned] {
+    display: none;
 }
 
-#FakeCompassBox[irs-state=inited], #FakeCompassBox[irs-state=aligning]{
-    display:block;
+#FakeCompassBox[irs-state=off], #FakeCompassBox[irs-state=aligned] {
+    display: none;
 }
 
-#l-align[irs-state=aligning], #l-align2[irs-state=aligning], #c-align[irs-state=aligning], #r-align[irs-state=aligning]{
+#FakeCompassBox[irs-state=inited], #FakeCompassBox[irs-state=aligning] {
+    display: block;
+}
+
+#l-align[irs-state=aligning], #l-align2[irs-state=aligning], #c-align[irs-state=aligning], #r-align[irs-state=aligning] {
     display: block;
 }
 
@@ -730,3 +736,5 @@ map-instrument[irs-state=aligned],
 #r-align[irs-state=off], #r-align[irs-state=inited], #r-align[irs-state=aligned] {
     display: none;
 }
+
+/*# sourceMappingURL=B787_10_ND.css.map */
